@@ -1,0 +1,3583 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PediatriaDosis Pro — Calculadora Clínica Pediátrica</title>
+  <style>
+    /* ==========================================================================
+       VARIABLES Y TEMAS CSS (SISTEMA DE DISEÑO CLÍNICO)
+       ========================================================================== */
+    :root {
+      --bg-body: #f1f5f9;
+      --bg-sidebar: #0f172a;
+      --bg-sidebar-hover: #1e293b;
+      --bg-surface: #ffffff;
+      --bg-surface-elevated: #ffffff;
+      --bg-input: #f8fafc;
+      --border-color: #cbd5e1;
+      --border-focus: #0284c7;
+
+      --text-main: #0f172a;
+      --text-muted: #64748b;
+      --text-inverse: #ffffff;
+
+      --primary: #0284c7;
+      --primary-hover: #0369a1;
+      --primary-light: #e0f2fe;
+
+      --safe: #10b981;
+      --safe-bg: #ecfdf5;
+      --safe-border: #a7f3d0;
+      --safe-text: #065f46;
+
+      --warning: #f59e0b;
+      --warning-bg: #fffbeb;
+      --warning-border: #fde68a;
+      --warning-text: #92400e;
+
+      --danger: #ef4444;
+      --danger-bg: #fef2f2;
+      --danger-border: #fecaca;
+      --danger-text: #991b1b;
+
+      --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+      --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 16px;
+      --radius-full: 9999px;
+
+      --transition-fast: 0.15s ease;
+      --transition-normal: 0.25s ease;
+
+      --sidebar-width: 260px;
+      --sidebar-collapsed-width: 72px;
+      --header-height: 64px;
+    }
+
+    [data-theme="dark"] {
+      --bg-body: #0b1120;
+      --bg-sidebar: #070c18;
+      --bg-sidebar-hover: #131d33;
+      --bg-surface: #131d33;
+      --bg-surface-elevated: #1a2744;
+      --bg-input: #0b1120;
+      --border-color: #243452;
+      --border-focus: #38bdf8;
+
+      --text-main: #f1f5f9;
+      --text-muted: #94a3b8;
+      --text-inverse: #ffffff;
+
+      --primary: #38bdf8;
+      --primary-hover: #0ea5e9;
+      --primary-light: #082f49;
+
+      --safe: #34d399;
+      --safe-bg: #064e3b;
+      --safe-border: #047857;
+      --safe-text: #ecfdf5;
+
+      --warning: #fbbf24;
+      --warning-bg: #78350f;
+      --warning-border: #b45309;
+      --warning-text: #fef3c7;
+
+      --danger: #f87171;
+      --danger-bg: #7f1d1d;
+      --danger-border: #b91c1c;
+      --danger-text: #fef2f2;
+
+      --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+      --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4);
+      --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+    }
+
+    /* ==========================================================================
+       RESET Y BASE
+       ========================================================================== */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      height: 100%;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      font-size: 15px;
+      line-height: 1.5;
+      background-color: var(--bg-body);
+      color: var(--text-main);
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+      }
+    }
+
+    /* Iconos SVG */
+    .icon {
+      display: inline-block;
+      width: 1.25rem;
+      height: 1.25rem;
+      stroke-width: 2;
+      stroke: currentColor;
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      vertical-align: middle;
+      flex-shrink: 0;
+    }
+    .icon-lg { width: 1.75rem; height: 1.75rem; }
+    .icon-xl { width: 2.25rem; height: 2.25rem; }
+
+    /* ==========================================================================
+       LAYOUT PRINCIPAL
+       ========================================================================== */
+    .app-layout {
+      display: flex;
+      min-height: 100vh;
+      width: 100vw;
+      position: relative;
+    }
+
+    /* SIDEBAR */
+    .sidebar {
+      width: var(--sidebar-width);
+      background-color: var(--bg-sidebar);
+      color: #94a3b8;
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      transition: width var(--transition-normal);
+      z-index: 40;
+      border-right: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .sidebar.collapsed {
+      width: var(--sidebar-collapsed-width);
+    }
+
+    .sidebar-header {
+      height: var(--header-height);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 1rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      font-weight: 700;
+      font-size: 1.1rem;
+      color: #ffffff;
+      white-space: nowrap;
+      overflow: hidden;
+    }
+    .brand-icon {
+      width: 36px;
+      height: 36px;
+      background: linear-gradient(135deg, #0284c7, #38bdf8);
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+    }
+
+    .sidebar-collapse-btn {
+      background: transparent;
+      border: none;
+      color: #94a3b8;
+      cursor: pointer;
+      padding: 0.4rem;
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background var(--transition-fast), color var(--transition-fast);
+    }
+    .sidebar-collapse-btn:hover {
+      background: var(--bg-sidebar-hover);
+      color: #ffffff;
+    }
+
+    .sidebar-nav {
+      flex: 1;
+      padding: 1rem 0.5rem;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.75rem 0.85rem;
+      border-radius: var(--radius-md);
+      color: #94a3b8;
+      font-weight: 500;
+      font-size: 0.92rem;
+      cursor: pointer;
+      text-decoration: none;
+      white-space: nowrap;
+      transition: all var(--transition-fast);
+      border: 1px solid transparent;
+      user-select: none;
+    }
+    .nav-item:hover {
+      background-color: var(--bg-sidebar-hover);
+      color: #f1f5f9;
+    }
+    .nav-item.active {
+      background-color: rgba(2, 132, 199, 0.18);
+      color: #38bdf8;
+      border-color: rgba(56, 189, 248, 0.3);
+      font-weight: 600;
+    }
+
+    .sidebar.collapsed .nav-text {
+      display: none;
+    }
+    .sidebar.collapsed .brand-text {
+      display: none;
+    }
+    .sidebar.collapsed .sidebar-header {
+      justify-content: center;
+      padding: 0;
+    }
+    .sidebar.collapsed .sidebar-collapse-btn {
+      display: none;
+    }
+
+    .sidebar-footer {
+      padding: 0.85rem;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      font-size: 0.75rem;
+      text-align: center;
+      color: #64748b;
+    }
+
+    /* MAIN CONTENT */
+    .main-wrapper {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow-y: auto;
+      background-color: var(--bg-body);
+      min-width: 0;
+    }
+
+    /* TOP HEADER */
+    .topbar {
+      height: var(--header-height);
+      background-color: var(--bg-surface);
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 1.5rem;
+      position: sticky;
+      top: 0;
+      z-index: 30;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .topbar-left {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .menu-toggle-mobile {
+      display: none;
+      background: transparent;
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      padding: 0.5rem;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+    }
+
+    .page-title-badge {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .topbar-patient-pill {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      background: var(--primary-light);
+      border: 1px solid rgba(2, 132, 199, 0.25);
+      padding: 0.4rem 0.85rem;
+      border-radius: var(--radius-full);
+      font-size: 0.82rem;
+      color: var(--text-main);
+      font-weight: 600;
+    }
+
+    .topbar-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .btn-icon {
+      background: var(--bg-surface-elevated);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      width: 38px;
+      height: 38px;
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all var(--transition-fast);
+    }
+    .btn-icon:hover {
+      background: var(--primary-light);
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+
+    /* CONTENEDOR DE VISTAS */
+    .content-area {
+      flex: 1;
+      padding: 1.5rem;
+      max-width: 1440px;
+      width: 100%;
+      margin: 0 auto;
+    }
+
+    .view-panel {
+      display: none;
+      animation: fadeIn 0.2s ease forwards;
+    }
+    .view-panel.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ==========================================================================
+       COMPONENTES REUTILIZABLES (TARJETAS, BOTONES, INPUTS)
+       ========================================================================== */
+    .card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: 1.5rem;
+      box-shadow: var(--shadow-sm);
+      margin-bottom: 1.5rem;
+      transition: box-shadow var(--transition-fast), border-color var(--transition-fast);
+    }
+    .card:hover {
+      box-shadow: var(--shadow-md);
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1.25rem;
+      padding-bottom: 0.75rem;
+      border-bottom: 1px solid var(--border-color);
+    }
+    .card-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .card-subtitle {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-top: 0.2rem;
+    }
+
+    /* GRID SYSTEM */
+    .grid { display: grid; gap: 1.25rem; }
+    .grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .grid-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .grid-12 { grid-template-columns: repeat(12, minmax(0, 1fr)); }
+
+    .col-span-4 { grid-column: span 4 / span 4; }
+    .col-span-5 { grid-column: span 5 / span 5; }
+    .col-span-6 { grid-column: span 6 / span 6; }
+    .col-span-7 { grid-column: span 7 / span 7; }
+    .col-span-8 { grid-column: span 8 / span 8; }
+    .col-span-12 { grid-column: span 12 / span 12; }
+
+    /* KPI METRICS (POWER BI STYLE) */
+    .kpi-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 1.1rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      position: relative;
+      overflow: hidden;
+      border-left: 4px solid var(--primary);
+    }
+    .kpi-card.kpi-safe { border-left-color: var(--safe); }
+    .kpi-card.kpi-warning { border-left-color: var(--warning); }
+    .kpi-card.kpi-purple { border-left-color: #8b5cf6; }
+
+    .kpi-icon-wrapper {
+      width: 48px;
+      height: 48px;
+      border-radius: var(--radius-md);
+      background: var(--primary-light);
+      color: var(--primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .kpi-info { flex: 1; min-width: 0; }
+    .kpi-label {
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+    .kpi-value {
+      font-size: 1.45rem;
+      font-weight: 800;
+      color: var(--text-main);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .kpi-sub {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    /* BOTONES */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      font-weight: 600;
+      font-size: 0.92rem;
+      padding: 0.65rem 1.25rem;
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      border: 1px solid transparent;
+      transition: all var(--transition-fast);
+      user-select: none;
+      text-decoration: none;
+    }
+    .btn:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+
+    .btn-primary {
+      background-color: var(--primary);
+      color: #ffffff;
+      box-shadow: 0 2px 4px rgba(2, 132, 199, 0.25);
+    }
+    .btn-primary:hover:not(:disabled) {
+      background-color: var(--primary-hover);
+      box-shadow: 0 4px 8px rgba(2, 132, 199, 0.35);
+    }
+
+    .btn-secondary {
+      background-color: var(--bg-surface-elevated);
+      border-color: var(--border-color);
+      color: var(--text-main);
+    }
+    .btn-secondary:hover:not(:disabled) {
+      background-color: var(--primary-light);
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+
+    .btn-outline-danger {
+      background: transparent;
+      border-color: var(--danger-border);
+      color: var(--danger);
+    }
+    .btn-outline-danger:hover:not(:disabled) {
+      background: var(--danger-bg);
+    }
+
+    .btn-sm {
+      padding: 0.4rem 0.75rem;
+      font-size: 0.82rem;
+      border-radius: var(--radius-sm);
+    }
+
+    .btn-lg {
+      padding: 0.85rem 1.6rem;
+      font-size: 1.05rem;
+      border-radius: var(--radius-md);
+    }
+
+    /* FORMULARIOS E INPUTS */
+    .form-group {
+      margin-bottom: 1.1rem;
+    }
+    .form-label {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-main);
+      margin-bottom: 0.35rem;
+    }
+    .form-label-desc {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      font-weight: normal;
+    }
+
+    .form-input, .form-select {
+      width: 100%;
+      padding: 0.65rem 0.85rem;
+      font-size: 0.95rem;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      background-color: var(--bg-input);
+      color: var(--text-main);
+      transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+      outline: none;
+    }
+    .form-input:focus, .form-select:focus {
+      border-color: var(--border-focus);
+      box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
+    }
+
+    .input-group {
+      display: flex;
+      align-items: stretch;
+    }
+    .input-group .form-input {
+      border-top-right-radius: 0;
+      border-bottom-right-radius: 0;
+    }
+    .input-addon {
+      background: var(--bg-surface-elevated);
+      border: 1px solid var(--border-color);
+      border-left: none;
+      padding: 0 0.85rem;
+      display: flex;
+      align-items: center;
+      color: var(--text-muted);
+      font-weight: 600;
+      font-size: 0.85rem;
+      border-top-right-radius: var(--radius-md);
+      border-bottom-right-radius: var(--radius-md);
+    }
+
+    /* BUSCADOR DE MEDICAMENTO */
+    .search-select-container {
+      position: relative;
+    }
+    .search-results-dropdown {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      max-height: 240px;
+      overflow-y: auto;
+      z-index: 50;
+      box-shadow: var(--shadow-lg);
+      margin-top: 4px;
+      display: none;
+    }
+    .search-results-dropdown.show {
+      display: block;
+    }
+    .search-result-item {
+      padding: 0.65rem 0.85rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border-color);
+      transition: background var(--transition-fast);
+    }
+    .search-result-item:last-child { border-bottom: none; }
+    .search-result-item:hover, .search-result-item.highlighted {
+      background: var(--primary-light);
+    }
+    .search-item-name { font-weight: 600; color: var(--text-main); }
+    .search-item-meta { font-size: 0.78rem; color: var(--text-muted); }
+
+    /* ALERTAS CLÍNICAS */
+    .clinical-alert {
+      padding: 1rem 1.25rem;
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: flex-start;
+      gap: 0.85rem;
+      margin-bottom: 1.25rem;
+      border-width: 1px;
+      border-style: solid;
+      font-size: 0.9rem;
+      line-height: 1.45;
+    }
+    .clinical-alert.safe {
+      background-color: var(--safe-bg);
+      border-color: var(--safe-border);
+      color: var(--safe-text);
+    }
+    .clinical-alert.warning {
+      background-color: var(--warning-bg);
+      border-color: var(--warning-border);
+      color: var(--warning-text);
+    }
+    .clinical-alert.danger {
+      background-color: var(--danger-bg);
+      border-color: var(--danger-border);
+      color: var(--danger-text);
+    }
+    .clinical-alert-icon {
+      font-size: 1.35rem;
+      flex-shrink: 0;
+      margin-top: -2px;
+    }
+
+    /* RESULTADO HERO CARD */
+    .result-hero-card {
+      background: linear-gradient(145deg, var(--bg-surface), var(--bg-surface-elevated));
+      border: 2px solid var(--primary);
+      border-radius: var(--radius-lg);
+      padding: 1.5rem;
+      box-shadow: var(--shadow-md);
+      position: relative;
+    }
+    .result-badge-top {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      background: var(--primary-light);
+      color: var(--primary);
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 0.3rem 0.7rem;
+      border-radius: var(--radius-full);
+      margin-bottom: 0.75rem;
+    }
+    .result-dose-big {
+      font-size: 2.4rem;
+      font-weight: 900;
+      color: var(--text-main);
+      line-height: 1.1;
+      margin-bottom: 0.2rem;
+    }
+    .result-vol-big {
+      font-size: 2.1rem;
+      font-weight: 900;
+      color: var(--primary);
+      line-height: 1.1;
+    }
+    .result-meta-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.85rem;
+      margin-top: 1.25rem;
+      padding-top: 1.25rem;
+      border-top: 1px dashed var(--border-color);
+    }
+    .result-meta-item {
+      font-size: 0.82rem;
+    }
+    .result-meta-label {
+      color: var(--text-muted);
+      font-weight: 500;
+      margin-bottom: 0.15rem;
+    }
+    .result-meta-val {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    /* TARJETA DE FÓRMULA */
+    .formula-breakdown-card {
+      background: var(--bg-input);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 1rem;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 0.85rem;
+      color: var(--text-main);
+      margin-top: 1rem;
+    }
+    .formula-step {
+      margin-bottom: 0.5rem;
+      display: flex;
+      align-items: baseline;
+      gap: 0.5rem;
+    }
+    .formula-step:last-child { margin-bottom: 0; }
+    .formula-tag {
+      font-size: 0.7rem;
+      font-weight: 700;
+      background: var(--border-color);
+      padding: 0.1rem 0.4rem;
+      border-radius: 4px;
+      color: var(--text-muted);
+    }
+
+    /* TABLAS ESTILO CLINICAL DASHBOARD */
+    .table-container {
+      overflow-x: auto;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      background: var(--bg-surface);
+    }
+    .clinical-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 0.88rem;
+    }
+    .clinical-table th {
+      background-color: var(--bg-input);
+      color: var(--text-muted);
+      font-weight: 600;
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid var(--border-color);
+      text-transform: uppercase;
+      font-size: 0.75rem;
+      letter-spacing: 0.04em;
+    }
+    .clinical-table td {
+      padding: 0.85rem 1rem;
+      border-bottom: 1px solid var(--border-color);
+      color: var(--text-main);
+    }
+    .clinical-table tr:last-child td { border-bottom: none; }
+    .clinical-table tr:hover td {
+      background-color: var(--primary-light);
+    }
+
+    /* STEP WIZARD LIST (PASOS DE SEGURIDAD) */
+    .step-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.85rem;
+    }
+    .step-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.85rem;
+      background: var(--bg-input);
+      border: 1px solid var(--border-color);
+      padding: 0.85rem;
+      border-radius: var(--radius-md);
+    }
+    .step-number {
+      width: 28px;
+      height: 28px;
+      border-radius: var(--radius-full);
+      background: var(--primary);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 0.85rem;
+      flex-shrink: 0;
+    }
+    .step-title {
+      font-weight: 700;
+      font-size: 0.9rem;
+      margin-bottom: 0.15rem;
+      color: var(--text-main);
+    }
+    .step-desc {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+    }
+
+    /* MODAL */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background-color: rgba(15, 23, 42, 0.75);
+      backdrop-filter: blur(4px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity var(--transition-fast);
+      padding: 1rem;
+    }
+    .modal-backdrop.show {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .modal-container {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      width: 100%;
+      max-width: 620px;
+      max-height: 85vh;
+      overflow-y: auto;
+      box-shadow: var(--shadow-lg);
+      transform: scale(0.96);
+      transition: transform var(--transition-fast);
+    }
+    .modal-backdrop.show .modal-container {
+      transform: scale(1);
+    }
+    .modal-header {
+      padding: 1.25rem 1.5rem;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .modal-title {
+      font-size: 1.2rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .modal-body {
+      padding: 1.5rem;
+    }
+    .modal-footer {
+      padding: 1rem 1.5rem;
+      border-top: 1px solid var(--border-color);
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.75rem;
+      background: var(--bg-input);
+    }
+
+    /* DESCARGO DE RESPONSABILIDAD MÉDICO */
+    .medical-disclaimer-banner {
+      background-color: var(--warning-bg);
+      border: 1px solid var(--warning-border);
+      color: var(--warning-text);
+      padding: 0.75rem 1rem;
+      border-radius: var(--radius-md);
+      font-size: 0.8rem;
+      line-height: 1.4;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-top: 1.5rem;
+    }
+
+    /* TOAST NOTIFICATIONS */
+    .toast-container {
+      position: fixed;
+      bottom: 1.5rem;
+      right: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      z-index: 120;
+      pointer-events: none;
+    }
+    .toast {
+      background: var(--bg-sidebar);
+      color: white;
+      padding: 0.8rem 1.2rem;
+      border-radius: var(--radius-md);
+      font-size: 0.88rem;
+      box-shadow: var(--shadow-lg);
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      transform: translateY(20px);
+      opacity: 0;
+      transition: all var(--transition-fast);
+      pointer-events: auto;
+      border-left: 4px solid var(--primary);
+    }
+    .toast.show {
+      transform: translateY(0);
+      opacity: 1;
+    }
+
+    /* RESPONSIVE DRAWER Y BREAKPOINTS */
+    @media (max-width: 992px) {
+      .grid-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .grid-3 { grid-template-columns: repeat(1, minmax(0, 1fr)); }
+      .col-span-4, .col-span-5, .col-span-6, .col-span-7, .col-span-8 {
+        grid-column: span 12 / span 12;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .menu-toggle-mobile { display: flex; }
+      .sidebar {
+        position: fixed;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        transform: translateX(-100%);
+        transition: transform var(--transition-normal);
+      }
+      .sidebar.mobile-open {
+        transform: translateX(0);
+      }
+      .sidebar-backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 35;
+        display: none;
+      }
+      .sidebar-backdrop.active {
+        display: block;
+      }
+      .topbar-patient-pill { display: none; }
+      .grid-2, .grid-4 { grid-template-columns: 1fr; }
+      .content-area { padding: 1rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="app-layout">
+    <!-- Backdrop móvil -->
+    <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="brand">
+          <div class="brand-icon">
+            <svg class="icon icon-lg" viewBox="0 0 24 24"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+          </div>
+          <span class="brand-text">PediatriaDosis</span>
+        </div>
+        <button class="sidebar-collapse-btn" id="sidebarCollapseBtn" title="Colapsar menú">
+          <svg class="icon" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+      </div>
+
+      <nav class="sidebar-nav">
+        <a class="nav-item active" data-view="dashboard">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+          <span class="nav-text">Inicio</span>
+        </a>
+        <a class="nav-item" data-view="calculator">
+          <svg class="icon" viewBox="0 0 24 24"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="16" y1="14" x2="16" y2="18"/><path d="M16 10h.01"/><path d="M12 10h.01"/><path d="M8 10h.01"/><path d="M12 14h.01"/><path d="M8 14h.01"/><path d="M12 18h.01"/><path d="M8 18h.01"/></svg>
+          <span class="nav-text">Calculadora de Dosis</span>
+        </a>
+        <a class="nav-item" data-view="drugs">
+          <svg class="icon" viewBox="0 0 24 24"><path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/><path d="m8.5 8.5 7 7"/></svg>
+          <span class="nav-text">Medicamentos</span>
+        </a>
+        <a class="nav-item" data-view="weight-calc">
+          <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m16 12-4-4-4 4"/><path d="M12 16V8"/></svg>
+          <span class="nav-text">Calculadora por Peso</span>
+        </a>
+        <a class="nav-item" data-view="bsa">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M21.3 8.7 8.7 21.3c-1 1-2.5 1-3.4 0l-2.6-2.6c-1-1-1-2.5 0-3.4L15.3 2.7c1-1 2.5-1 3.4 0l2.6 2.6c1 1 1 2.5 0 3.4Z"/><path d="m14.5 3.5 6 6"/><path d="m8 10 2 2"/><path d="m6 12 2 2"/><path d="m4 14 2 2"/></svg>
+          <span class="nav-text">Superficie Corporal</span>
+        </a>
+        <a class="nav-item" data-view="converter">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>
+          <span class="nav-text">Conversión mg ↔ mL</span>
+        </a>
+        <a class="nav-item" data-view="history">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+          <span class="nav-text">Historial de Cálculos</span>
+        </a>
+        <a class="nav-item" data-view="references">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+          <span class="nav-text">Fórmulas y Guías</span>
+        </a>
+        <a class="nav-item" data-view="settings">
+          <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          <span class="nav-text">Configuración</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <span class="brand-text">v2.4 Pro Clínico • Offline</span>
+      </div>
+    </aside>
+
+    <!-- WRAPPER PRINCIPAL -->
+    <div class="main-wrapper">
+      <!-- HEADER SUPERIOR -->
+      <header class="topbar">
+        <div class="topbar-left">
+          <button class="menu-toggle-mobile" id="mobileMenuBtn">
+            <svg class="icon" viewBox="0 0 24 24"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+          </button>
+          <div class="page-title-badge" id="currentViewTitle">
+            <span>Inicio</span>
+          </div>
+        </div>
+
+        <div class="topbar-actions">
+          <div class="topbar-patient-pill" id="topbarPatientInfo">
+            <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="7" r="4"/><path d="M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/></svg>
+            <span id="topbarPatientText">Paciente: 18 kg (4 años)</span>
+          </div>
+
+          <button class="btn btn-secondary btn-sm" id="btnEditPatientQuick" title="Editar Paciente Actual">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            <span>Paciente</span>
+          </button>
+
+          <button class="btn-icon" id="themeToggleBtn" title="Alternar Modo Claro/Oscuro">
+            <svg class="icon" id="themeIconSun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+            <svg class="icon" id="themeIconMoon" style="display:none;" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+          </button>
+        </div>
+      </header>
+
+      <!-- ÁREA DE CONTENIDO (VISTAS DINÁMICAS) -->
+      <main class="content-area">
+
+        <!-- ==========================================
+             1. VISTA DASHBOARD (INICIO)
+             ========================================== -->
+        <section id="view-dashboard" class="view-panel active">
+          <!-- KPIs -->
+          <div class="grid grid-4" style="margin-bottom: 1.5rem;">
+            <div class="kpi-card">
+              <div class="kpi-icon-wrapper">
+                <svg class="icon icon-lg" viewBox="0 0 24 24"><circle cx="12" cy="7" r="4"/><path d="M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/></svg>
+              </div>
+              <div class="kpi-info">
+                <div class="kpi-label">Peso Paciente</div>
+                <div class="kpi-value" id="kpiPatientWeight">18.0 kg</div>
+                <div class="kpi-sub" id="kpiPatientSub">Edad: 4 años • Varón</div>
+              </div>
+            </div>
+
+            <div class="kpi-card kpi-safe">
+              <div class="kpi-icon-wrapper" style="background: var(--safe-bg); color: var(--safe);">
+                <svg class="icon icon-lg" viewBox="0 0 24 24"><path d="M21.3 8.7 8.7 21.3c-1 1-2.5 1-3.4 0l-2.6-2.6c-1-1-1-2.5 0-3.4L15.3 2.7c1-1 2.5-1 3.4 0l2.6 2.6c1 1 1 2.5 0 3.4Z"/></svg>
+              </div>
+              <div class="kpi-info">
+                <div class="kpi-label">Sup. Corporal (BSA)</div>
+                <div class="kpi-value" id="kpiPatientBSA">0.73 m²</div>
+                <div class="kpi-sub">Fórmula de Mosteller</div>
+              </div>
+            </div>
+
+            <div class="kpi-card kpi-purple">
+              <div class="kpi-icon-wrapper" style="background: rgba(139, 92, 246, 0.15); color: #8b5cf6;">
+                <svg class="icon icon-lg" viewBox="0 0 24 24"><path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/></svg>
+              </div>
+              <div class="kpi-info">
+                <div class="kpi-label">Último Fármaco</div>
+                <div class="kpi-value" id="kpiLastDrug">Paracetamol</div>
+                <div class="kpi-sub" id="kpiLastDose">270 mg (5.4 mL)</div>
+              </div>
+            </div>
+
+            <div class="kpi-card kpi-warning">
+              <div class="kpi-icon-wrapper" style="background: var(--warning-bg); color: var(--warning);">
+                <svg class="icon icon-lg" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              </div>
+              <div class="kpi-info">
+                <div class="kpi-label">Sesión Actual</div>
+                <div class="kpi-value" id="kpiHistoryCount">1 cálculo</div>
+                <div class="kpi-sub" id="kpiLastTime">Registrado hace poco</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ACCESOS RÁPIDOS -->
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h2 class="card-title">
+                  <svg class="icon" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                  Accesos Directos Clínicos
+                </h2>
+                <div class="card-subtitle">Inicie cálculos específicos con un clic manteniendo los datos del paciente</div>
+              </div>
+            </div>
+            <div class="grid grid-4">
+              <button class="btn btn-primary" onclick="APP.navigateTo('calculator')">
+                <svg class="icon" viewBox="0 0 24 24"><rect x="4" y="2" width="16" height="20" rx="2"/></svg>
+                Calculadora Principal
+              </button>
+              <button class="btn btn-secondary" onclick="APP.navigateTo('weight-calc')">
+                <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m16 12-4-4-4 4"/></svg>
+                Dosis por kg Manual
+              </button>
+              <button class="btn btn-secondary" onclick="APP.navigateTo('converter')">
+                <svg class="icon" viewBox="0 0 24 24"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>
+                Conversión mg ↔ mL
+              </button>
+              <button class="btn btn-secondary" onclick="APP.navigateTo('bsa')">
+                <svg class="icon" viewBox="0 0 24 24"><path d="M21.3 8.7 8.7 21.3c-1 1-2.5 1-3.4 0l-2.6-2.6c-1-1-1-2.5 0-3.4L15.3 2.7c1-1 2.5-1 3.4 0l2.6 2.6c1 1 1 2.5 0 3.4Z"/></svg>
+                Calcular Sup. Corporal
+              </button>
+            </div>
+          </div>
+
+          <!-- PROTOCOLO CLÍNICO SEGURO -->
+          <div class="grid grid-2">
+            <div class="card">
+              <div class="card-header">
+                <h3 class="card-title">
+                  <svg class="icon" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                  7 Pasos para un Cálculo Pediátrico Seguro
+                </h3>
+              </div>
+              <div class="step-list">
+                <div class="step-item">
+                  <div class="step-number">1</div>
+                  <div>
+                    <div class="step-title">Verificar Peso Real</div>
+                    <div class="step-desc">Pesar al paciente antes de prescribir o usar peso exacto reciente en kg.</div>
+                  </div>
+                </div>
+                <div class="step-item">
+                  <div class="step-number">2</div>
+                  <div>
+                    <div class="step-title">Seleccionar Medicamento y Vía</div>
+                    <div class="step-desc">Asegurar principio activo, indicación y vía de administración correcta.</div>
+                  </div>
+                </div>
+                <div class="step-item">
+                  <div class="step-number">3</div>
+                  <div>
+                    <div class="step-title">Verificar Concentración Comercial</div>
+                    <div class="step-desc">Ej: 100 mg/mL frente a 250 mg/5 mL (evita errores de 5x).</div>
+                  </div>
+                </div>
+                <div class="step-item">
+                  <div class="step-number">4</div>
+                  <div>
+                    <div class="step-title">Determinar Dosis Pediátrica</div>
+                    <div class="step-desc">Diferenciar estrictamente entre mg/kg/dosis y mg/kg/día dividido en tomas.</div>
+                  </div>
+                </div>
+                <div class="step-item">
+                  <div class="step-number">5</div>
+                  <div>
+                    <div class="step-title">Ejecutar el Cálculo y Volumen</div>
+                    <div class="step-desc">Determinar mg exactos y convertir a mL de suspensión o gotas.</div>
+                  </div>
+                </div>
+                <div class="step-item">
+                  <div class="step-number">6</div>
+                  <div>
+                    <div class="step-title">Contrastar Límites Máximos</div>
+                    <div class="step-desc">La dosis calculada pediátrica NUNCA debe superar la dosis máxima del adulto.</div>
+                  </div>
+                </div>
+                <div class="step-item">
+                  <div class="step-number">7</div>
+                  <div>
+                    <div class="step-title">Doble Chequeo Independiente</div>
+                    <div class="step-desc">Verificar con enfermería o colega antes de la administración final.</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- RESUMEN DE FARMACOTECA -->
+            <div class="card">
+              <div class="card-header">
+                <h3 class="card-title">
+                  <svg class="icon" viewBox="0 0 24 24"><path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/></svg>
+                  Medicamentos Disponibles en Guía Rápida
+                </h3>
+              </div>
+              <p style="color: var(--text-muted); font-size: 0.88rem; margin-bottom: 1rem;">
+                Módulo farmacológico con posología estándar basada en fichas técnicas validadas (AEP, Guía ABE y OMS):
+              </p>
+              <div id="dashboardDrugTags" style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                <!-- Tags dinámicos -->
+              </div>
+              <div style="margin-top: 1.5rem;">
+                <button class="btn btn-secondary w-full" style="width: 100%;" onclick="APP.navigateTo('drugs')">
+                  Ver Fichas Farmacológicas Completas
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+
+        <!-- ==========================================
+             2. VISTA CALCULADORA PRINCIPAL
+             ========================================== -->
+        <section id="view-calculator" class="view-panel">
+          <div class="grid grid-12">
+            <!-- PANEL IZQUIERDO: ENTRADA DE DATOS -->
+            <div class="col-span-7">
+              <div class="card">
+                <div class="card-header">
+                  <div>
+                    <h2 class="card-title">
+                      <svg class="icon" viewBox="0 0 24 24"><rect x="4" y="2" width="16" height="20" rx="2"/></svg>
+                      Configuración del Cálculo Pediátrico
+                    </h2>
+                    <div class="card-subtitle">Complete los parámetros clínicos para el cálculo automatizado</div>
+                  </div>
+                </div>
+
+                <!-- SECCIÓN PACIENTE -->
+                <div style="background: var(--bg-input); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 1rem; margin-bottom: 1.25rem;">
+                  <div style="font-weight: 700; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 0.75rem;">
+                    1. Datos Antropométricos del Paciente
+                  </div>
+                  <div class="grid grid-3">
+                    <div class="form-group" style="margin-bottom: 0;">
+                      <label class="form-label">Peso <span style="color: var(--danger);">*</span></label>
+                      <div class="input-group">
+                        <input type="number" id="calcWeight" class="form-input" placeholder="Ej: 15" step="0.1" min="0.5" max="150" value="18">
+                        <span class="input-addon">kg</span>
+                      </div>
+                    </div>
+
+                    <div class="form-group" style="margin-bottom: 0;">
+                      <label class="form-label">Edad</label>
+                      <div style="display: flex; gap: 0.35rem;">
+                        <input type="number" id="calcAgeValue" class="form-input" placeholder="4" min="0" value="4">
+                        <select id="calcAgeUnit" class="form-select" style="width: 100px;">
+                          <option value="years">Años</option>
+                          <option value="months">Meses</option>
+                          <option value="days">Días</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div class="form-group" style="margin-bottom: 0;">
+                      <label class="form-label">Talla / Sexo</label>
+                      <div style="display: flex; gap: 0.35rem;">
+                        <input type="number" id="calcHeight" class="form-input" placeholder="102" step="1" value="102" title="Talla en cm">
+                        <select id="calcSex" class="form-select" style="width: 75px;">
+                          <option value="M">M</option>
+                          <option value="F">F</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- SECCIÓN MEDICAMENTO -->
+                <div class="form-group">
+                  <label class="form-label">
+                    <span>2. Medicamento Pediátrico <span style="color: var(--danger);">*</span></span>
+                    <span class="form-label-desc">Busque por nombre o principio activo</span>
+                  </label>
+                  <div class="search-select-container">
+                    <input type="text" id="calcDrugSearch" class="form-input" placeholder="Escriba para buscar... (ej: Paracetamol, Amoxicilina)" autocomplete="off">
+                    <div id="drugSearchResults" class="search-results-dropdown"></div>
+                  </div>
+                </div>
+
+                <!-- PRESENTACIÓN / CONCENTRACIÓN -->
+                <div class="grid grid-2">
+                  <div class="form-group">
+                    <label class="form-label">Presentación Seleccionada</label>
+                    <select id="calcPresentationSelect" class="form-select">
+                      <option value="">Seleccione un fármaco primero</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Concentración Activa (mg/mL)</label>
+                    <div class="input-group">
+                      <input type="number" id="calcConcentrationMgMl" class="form-input" readonly>
+                      <span class="input-addon">mg/mL</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- REGIMEN DE DOSIFICACIÓN -->
+                <div style="background: var(--bg-input); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 1rem; margin-bottom: 1.25rem;">
+                  <div style="font-weight: 700; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 0.75rem;">
+                    3. Parámetros de Dosificación
+                  </div>
+
+                  <div class="grid grid-2">
+                    <div class="form-group">
+                      <label class="form-label">Tipo de Dosificación</label>
+                      <select id="calcDoseType" class="form-select">
+                        <option value="per_dose">mg / kg / dosis (Por toma)</option>
+                        <option value="per_day">mg / kg / día (Total diario a dividir)</option>
+                      </select>
+                    </div>
+
+                    <div class="form-group">
+                      <label class="form-label">Dosis Indicada</label>
+                      <div class="input-group">
+                        <input type="number" id="calcDoseVal" class="form-input" step="0.5" placeholder="15">
+                        <span class="input-addon" id="calcDoseValUnit">mg/kg/toma</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="grid grid-2">
+                    <div class="form-group" style="margin-bottom: 0;">
+                      <label class="form-label">Frecuencia / Intervalo</label>
+                      <select id="calcFrequencySelect" class="form-select">
+                        <option value="4">Cada 4 horas (6 tomas/día)</option>
+                        <option value="6">Cada 6 horas (4 tomas/día)</option>
+                        <option value="8" selected>Cada 8 horas (3 tomas/día)</option>
+                        <option value="12">Cada 12 horas (2 tomas/día)</option>
+                        <option value="24">Cada 24 horas (1 toma/día)</option>
+                      </select>
+                    </div>
+
+                    <div class="form-group" style="margin-bottom: 0;">
+                      <label class="form-label">Vía de Administración</label>
+                      <input type="text" id="calcRoute" class="form-input" readonly value="Oral">
+                    </div>
+                  </div>
+                </div>
+
+                <div style="display: flex; gap: 0.75rem; justify-content: flex-end;">
+                  <button class="btn btn-secondary" id="btnResetCalc">
+                    <svg class="icon" viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+                    Restablecer
+                  </button>
+                  <button class="btn btn-primary" id="btnExecuteCalc">
+                    <svg class="icon" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+                    Calcular Dosis
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- PANEL DERECHO: RESULTADO CLÍNICO VISUAL -->
+            <div class="col-span-5">
+              <!-- ALERTA DINÁMICA -->
+              <div id="calcAlertBox" class="clinical-alert safe">
+                <span class="clinical-alert-icon" id="calcAlertIcon">✅</span>
+                <div id="calcAlertMessage">
+                  <strong>Dosificación en Rango Seguro:</strong> Los valores calculados se encuentran dentro de las directrices pediátricas estándar.
+                </div>
+              </div>
+
+              <!-- HERO CARD RESULTADO -->
+              <div class="result-hero-card">
+                <div class="result-badge-top" id="calcResultDrugTitle">💊 PARACETAMOL</div>
+
+                <div style="margin-bottom: 1.25rem;">
+                  <div style="font-size: 0.85rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.05em;">
+                    Dosis Calculada Por Toma
+                  </div>
+                  <div class="result-dose-big" id="resultMgPerDose">270 mg</div>
+                  <div style="font-size: 0.95rem; color: var(--text-muted); font-weight: 500;">
+                    Equivalente a administrar:
+                  </div>
+                  <div class="result-vol-big" id="resultMlPerDose">2.70 mL</div>
+                </div>
+
+                <div class="result-meta-grid">
+                  <div class="result-meta-item">
+                    <div class="result-meta-label">Frecuencia</div>
+                    <div class="result-meta-val" id="resultFrequency">Cada 8 horas</div>
+                  </div>
+                  <div class="result-meta-item">
+                    <div class="result-meta-label">Dosis Diaria Total</div>
+                    <div class="result-meta-val" id="resultDailyMg">810 mg/día</div>
+                  </div>
+                  <div class="result-meta-item">
+                    <div class="result-meta-label">Volumen Diario Total</div>
+                    <div class="result-meta-val" id="resultDailyMl">8.10 mL/día</div>
+                  </div>
+                  <div class="result-meta-item">
+                    <div class="result-meta-label">Límite Máximo Diario</div>
+                    <div class="result-meta-val" id="resultMaxDaily">Máx: 2000 mg/día</div>
+                  </div>
+                </div>
+
+                <!-- ACCIONES RÁPIDAS DEL RESULTADO -->
+                <div style="display: flex; gap: 0.5rem; margin-top: 1.5rem; flex-wrap: wrap;">
+                  <button class="btn btn-secondary btn-sm" id="btnExplainCalc" style="flex: 1;">
+                    <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                    ¿Cómo se calculó?
+                  </button>
+                  <button class="btn btn-primary btn-sm" id="btnSaveToHistory" style="flex: 1;">
+                    <svg class="icon" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                    Guardar
+                  </button>
+                  <button class="btn btn-secondary btn-sm" id="btnCopyResult" title="Copiar resumen para nota médica">
+                    <svg class="icon" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                  </button>
+                </div>
+              </div>
+
+              <!-- DESGLOSE EN LÍNEA DE FÓRMULA -->
+              <div class="formula-breakdown-card" id="calcFormulaBox">
+                <div class="formula-step">
+                  <span class="formula-tag">Fórmula</span>
+                  <span id="formulaTextDose">18.0 kg × 15 mg/kg = 270.0 mg/dosis</span>
+                </div>
+                <div class="formula-step">
+                  <span class="formula-tag">Volumen</span>
+                  <span id="formulaTextVol">270.0 mg ÷ 100 mg/mL = 2.70 mL</span>
+                </div>
+              </div>
+
+              <!-- OBSERVACIONES FARMACOLÓGICAS -->
+              <div class="card" style="margin-top: 1rem; padding: 1rem;">
+                <div style="font-weight: 700; font-size: 0.82rem; color: var(--text-muted); text-transform: uppercase; margin-bottom: 0.4rem;">
+                  Notas Clínicas del Fármaco
+                </div>
+                <div id="calcDrugObservations" style="font-size: 0.85rem; color: var(--text-main);">
+                  Administrar con alimentos si produce molestias gástricas. Intervalo mínimo de 4 horas entre tomas.
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+
+        <!-- ==========================================
+             3. VISTA CATÁLOGO DE MEDICAMENTOS
+             ========================================== -->
+        <section id="view-drugs" class="view-panel">
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h2 class="card-title">
+                  <svg class="icon" viewBox="0 0 24 24"><path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/></svg>
+                  Vademécum Pediátrico Desacoplado
+                </h2>
+                <div class="card-subtitle">Fichas técnicas y parámetros de dosificación con fuentes farmacológicas</div>
+              </div>
+              <div style="max-width: 300px; width: 100%;">
+                <input type="text" id="drugCatalogFilter" class="form-input" placeholder="Filtrar medicamento...">
+              </div>
+            </div>
+
+            <div class="table-container">
+              <table class="clinical-table">
+                <thead>
+                  <tr>
+                    <th>Fármaco / Principio</th>
+                    <th>Vía / Presentaciones</th>
+                    <th>Posología Estándar</th>
+                    <th>Dosis Máxima</th>
+                    <th>Edad / Observaciones</th>
+                    <th>Acción</th>
+                  </tr>
+                </thead>
+                <tbody id="drugsTableBody">
+                  <!-- Llenado dinámico -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+
+        <!-- ==========================================
+             4. VISTA CALCULADORA POR PESO (RÁPIDA)
+             ========================================== -->
+        <section id="view-weight-calc" class="view-panel">
+          <div class="grid grid-12">
+            <div class="col-span-6">
+              <div class="card">
+                <div class="card-header">
+                  <h2 class="card-title">
+                    <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m16 12-4-4-4 4"/></svg>
+                    Cálculo Directo por Peso (Personalizado)
+                  </h2>
+                </div>
+                <p style="font-size: 0.88rem; color: var(--text-muted); margin-bottom: 1.25rem;">
+                  Utilice esta herramienta para cualquier medicamento introduciendo manualmente la dosis recomendada en mg/kg.
+                </p>
+
+                <div class="form-group">
+                  <label class="form-label">Peso del Paciente (kg)</label>
+                  <input type="number" id="quickWeight" class="form-input" step="0.1" value="18">
+                </div>
+
+                <div class="grid grid-2">
+                  <div class="form-group">
+                    <label class="form-label">Modo de Dosis</label>
+                    <select id="quickDoseMode" class="form-select">
+                      <option value="dose">mg / kg / dosis</option>
+                      <option value="day">mg / kg / día</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Dosis indicada (mg/kg)</label>
+                    <input type="number" id="quickDoseMgKg" class="form-input" step="0.1" value="10">
+                  </div>
+                </div>
+
+                <div class="grid grid-2">
+                  <div class="form-group">
+                    <label class="form-label">Tomas al día</label>
+                    <select id="quickDosesPerDay" class="form-select">
+                      <option value="1">1 toma al día (cada 24h)</option>
+                      <option value="2">2 tomas al día (cada 12h)</option>
+                      <option value="3" selected>3 tomas al día (cada 8h)</option>
+                      <option value="4">4 tomas al día (cada 6h)</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Concentración (mg en mL)</label>
+                    <div style="display: flex; gap: 0.35rem;">
+                      <input type="number" id="quickConcMg" class="form-input" placeholder="250" value="250" title="mg">
+                      <span style="display:flex;align-items:center;">/</span>
+                      <input type="number" id="quickConcMl" class="form-input" placeholder="5" value="5" title="mL">
+                    </div>
+                  </div>
+                </div>
+
+                <button class="btn btn-primary" id="btnComputeQuickWeight" style="width: 100%;">
+                  Calcular Dosis Rápida
+                </button>
+              </div>
+            </div>
+
+            <div class="col-span-6">
+              <div class="card" id="quickWeightResultCard" style="height: 100%; display: flex; flex-direction: column; justify-content: center;">
+                <div class="result-badge-top">CÁLCULO MANUAL POR PESO</div>
+                <div style="font-size: 0.85rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted);">
+                  Dosis por administración
+                </div>
+                <div class="result-dose-big" id="quickResultMg">180 mg</div>
+                <div class="result-vol-big" id="quickResultMl" style="margin-bottom: 1rem;">3.6 mL</div>
+
+                <div class="formula-breakdown-card" style="margin-top: 0;">
+                  <div class="formula-step">
+                    <span class="formula-tag">Dosis Diaria</span>
+                    <span id="quickFormulaDay">540 mg/día en 3 administraciones</span>
+                  </div>
+                  <div class="formula-step">
+                    <span class="formula-tag">Concentración</span>
+                    <span id="quickFormulaConc">50 mg/mL (250 mg en 5 mL)</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+
+        <!-- ==========================================
+             5. VISTA SUPERFICIE CORPORAL (BSA)
+             ========================================== -->
+        <section id="view-bsa" class="view-panel">
+          <div class="grid grid-12">
+            <div class="col-span-6">
+              <div class="card">
+                <div class="card-header">
+                  <h2 class="card-title">
+                    <svg class="icon" viewBox="0 0 24 24"><path d="M21.3 8.7 8.7 21.3c-1 1-2.5 1-3.4 0l-2.6-2.6c-1-1-1-2.5 0-3.4L15.3 2.7c1-1 2.5-1 3.4 0l2.6 2.6c1 1 1 2.5 0 3.4Z"/></svg>
+                    Calculadora de Superficie Corporal
+                  </h2>
+                </div>
+                <p style="font-size: 0.88rem; color: var(--text-muted); margin-bottom: 1.25rem;">
+                  Esencial para fármacos de estrecho margen terapéutico, quimioterapia y fluidoterapia pediátrica avanzada.
+                </p>
+
+                <div class="grid grid-2">
+                  <div class="form-group">
+                    <label class="form-label">Peso del Paciente</label>
+                    <div class="input-group">
+                      <input type="number" id="bsaInputWeight" class="form-input" step="0.1" value="18">
+                      <span class="input-addon">kg</span>
+                    </div>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Talla / Longitud</label>
+                    <div class="input-group">
+                      <input type="number" id="bsaInputHeight" class="form-input" step="0.5" value="102">
+                      <span class="input-addon">cm</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label">Fórmula Seleccionada</label>
+                  <select id="bsaFormulaSelect" class="form-select">
+                    <option value="mosteller">Mosteller: √((Peso × Talla) / 3600) [Recomendada]</option>
+                    <option value="dubois">Du Bois: 0.007184 × Peso^0.425 × Talla^0.725</option>
+                  </select>
+                </div>
+
+                <div style="display: flex; gap: 0.75rem;">
+                  <button class="btn btn-primary" id="btnCalculateBsa" style="flex: 1;">Calcular SC</button>
+                  <button class="btn btn-secondary" id="btnApplyBsaToPatient" style="flex: 1;">Aplicar al Paciente</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-span-6">
+              <div class="card" style="height: 100%;">
+                <div class="card-header">
+                  <h3 class="card-title">Resultado de Superficie Corporal</h3>
+                </div>
+                <div style="text-align: center; padding: 1.5rem 0;">
+                  <div style="font-size: 0.85rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">
+                    Superficie Corporal Estimada
+                  </div>
+                  <div class="result-dose-big" id="bsaResultValue" style="color: var(--primary); font-size: 3.2rem;">
+                    0.71 m²
+                  </div>
+                  <div style="font-size: 0.95rem; color: var(--text-muted); margin-top: 0.5rem;" id="bsaResultFormulaDesc">
+                    Mosteller: √((18 kg × 102 cm) ÷ 3600)
+                  </div>
+                </div>
+
+                <div class="formula-breakdown-card">
+                  <div class="formula-step">
+                    <span class="formula-tag">Mosteller (1987)</span>
+                    <span>SC (m²) = √[ (Peso (kg) × Altura (cm)) ÷ 3600 ]</span>
+                  </div>
+                  <div class="formula-step">
+                    <span class="formula-tag">Du Bois (1916)</span>
+                    <span>SC (m²) = 0.007184 × Peso^0.425 × Altura^0.725</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+
+        <!-- ==========================================
+             6. VISTA CONVERSIÓN mg ↔ mL
+             ========================================== -->
+        <section id="view-converter" class="view-panel">
+          <div class="grid grid-2">
+            <!-- mg a mL -->
+            <div class="card">
+              <div class="card-header">
+                <h3 class="card-title">
+                  <svg class="icon" viewBox="0 0 24 24"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>
+                  Conversión de mg → mL
+                </h3>
+              </div>
+              <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">
+                Calcule el volumen líquido en mL a partir de la dosis prescrita en miligramos.
+              </p>
+
+              <div class="form-group">
+                <label class="form-label">Dosis requerida en miligramos</label>
+                <div class="input-group">
+                  <input type="number" id="convMgIn" class="form-input" placeholder="Ej: 250" value="200" step="any">
+                  <span class="input-addon">mg</span>
+                </div>
+              </div>
+
+              <div class="grid grid-2">
+                <div class="form-group">
+                  <label class="form-label">mg de concentración</label>
+                  <input type="number" id="convRefMg1" class="form-input" value="250">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">en volumen de (mL)</label>
+                  <input type="number" id="convRefMl1" class="form-input" value="5">
+                </div>
+              </div>
+
+              <div class="formula-breakdown-card" style="margin-bottom: 1rem;">
+                <div class="formula-step">
+                  <span class="formula-tag">Ratio</span>
+                  <span id="convRatio1">50.00 mg/mL</span>
+                </div>
+              </div>
+
+              <div style="background: var(--primary-light); padding: 1rem; border-radius: var(--radius-md); text-align: center;">
+                <div style="font-size: 0.8rem; font-weight: 700; color: var(--primary); text-transform: uppercase;">Volumen a Administrar</div>
+                <div style="font-size: 2.2rem; font-weight: 900; color: var(--primary);" id="convMlOut">4.00 mL</div>
+              </div>
+            </div>
+
+            <!-- mL a mg -->
+            <div class="card">
+              <div class="card-header">
+                <h3 class="card-title">
+                  <svg class="icon" viewBox="0 0 24 24"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>
+                  Conversión de mL → mg
+                </h3>
+              </div>
+              <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">
+                Conozca cuántos miligramos ha recibido el paciente en función de los mililitros administrados.
+              </p>
+
+              <div class="form-group">
+                <label class="form-label">Volumen administrado</label>
+                <div class="input-group">
+                  <input type="number" id="convMlIn" class="form-input" placeholder="Ej: 4" value="4" step="any">
+                  <span class="input-addon">mL</span>
+                </div>
+              </div>
+
+              <div class="grid grid-2">
+                <div class="form-group">
+                  <label class="form-label">mg de concentración</label>
+                  <input type="number" id="convRefMg2" class="form-input" value="250">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">en volumen de (mL)</label>
+                  <input type="number" id="convRefMl2" class="form-input" value="5">
+                </div>
+              </div>
+
+              <div class="formula-breakdown-card" style="margin-bottom: 1rem;">
+                <div class="formula-step">
+                  <span class="formula-tag">Ratio</span>
+                  <span id="convRatio2">50.00 mg/mL</span>
+                </div>
+              </div>
+
+              <div style="background: var(--safe-bg); padding: 1rem; border-radius: var(--radius-md); text-align: center;">
+                <div style="font-size: 0.8rem; font-weight: 700; color: var(--safe-text); text-transform: uppercase;">Dosis Recibida</div>
+                <div style="font-size: 2.2rem; font-weight: 900; color: var(--safe-text);" id="convMgOut">200.00 mg</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+
+        <!-- ==========================================
+             7. VISTA HISTORIAL DE CÁLCULOS
+             ========================================== -->
+        <section id="view-history" class="view-panel">
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h2 class="card-title">
+                  <svg class="icon" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/></svg>
+                  Historial de Cálculos Realizados
+                </h2>
+                <div class="card-subtitle">Registros locales durante la sesión activa (no se envían a ningún servidor)</div>
+              </div>
+              <div style="display: flex; gap: 0.5rem;">
+                <button class="btn btn-secondary btn-sm" id="btnPrintHistory">
+                  <svg class="icon" viewBox="0 0 24 24"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+                  Imprimir / PDF
+                </button>
+                <button class="btn btn-outline-danger btn-sm" id="btnClearHistory">
+                  <svg class="icon" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                  Limpiar Todo
+                </button>
+              </div>
+            </div>
+
+            <div class="table-container">
+              <table class="clinical-table">
+                <thead>
+                  <tr>
+                    <th>Fecha / Hora</th>
+                    <th>Paciente</th>
+                    <th>Medicamento</th>
+                    <th>Dosis Indicada</th>
+                    <th>Dosis / Toma</th>
+                    <th>Volumen / Toma</th>
+                    <th>Frecuencia</th>
+                    <th>Estado</th>
+                    <th>Acciones</th>
+                  </tr>
+                </thead>
+                <tbody id="historyTableBody">
+                  <!-- Llenado dinámico -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+
+        <!-- ==========================================
+             8. VISTA FÓRMULAS Y REFERENCIAS
+             ========================================== -->
+        <section id="view-references" class="view-panel">
+          <div class="grid grid-2">
+            <div class="card">
+              <div class="card-header">
+                <h3 class="card-title">
+                  <svg class="icon" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/></svg>
+                  Fórmulas Matemáticas Pediátricas
+                </h3>
+              </div>
+              <div style="display: flex; flex-direction: column; gap: 1rem;">
+                <div class="formula-breakdown-card">
+                  <div style="font-weight: 700; margin-bottom: 0.35rem; color: var(--primary);">1. Dosis Por Administración (mg/kg/dosis)</div>
+                  <code>Dosis por toma (mg) = Peso (kg) × Dosis indicada (mg/kg/dosis)</code>
+                </div>
+
+                <div class="formula-breakdown-card">
+                  <div style="font-weight: 700; margin-bottom: 0.35rem; color: var(--primary);">2. Dosis Diaria Repartida (mg/kg/día)</div>
+                  <code>Dosis total diaria (mg) = Peso (kg) × Dosis diaria (mg/kg/día)</code><br>
+                  <code>Dosis por toma (mg) = Dosis total diaria (mg) ÷ Número de tomas al día</code>
+                </div>
+
+                <div class="formula-breakdown-card">
+                  <div style="font-weight: 700; margin-bottom: 0.35rem; color: var(--primary);">3. Conversión de Miligramos a Mililitros</div>
+                  <code>Concentración (mg/mL) = mg de referencia ÷ mL de referencia</code><br>
+                  <code>Volumen a administrar (mL) = Dosis requerida (mg) ÷ Concentración (mg/mL)</code>
+                </div>
+
+                <div class="formula-breakdown-card">
+                  <div style="font-weight: 700; margin-bottom: 0.35rem; color: var(--primary);">4. Superficie Corporal (Mosteller)</div>
+                  <code>SC (m²) = √ [ ( Peso (kg) × Talla (cm) ) ÷ 3600 ]</code>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <h3 class="card-title">
+                  <svg class="icon" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                  Fuentes Oficiales y Normas de Seguridad
+                </h3>
+              </div>
+              <div style="font-size: 0.9rem; line-height: 1.6; color: var(--text-main);">
+                <p style="margin-bottom: 0.85rem;">
+                  Las posologías incorporadas en la base de datos se han contrastado rigurosamente con fuentes farmacológicas pediátricas oficiales:
+                </p>
+                <ul style="padding-left: 1.25rem; margin-bottom: 1rem; color: var(--text-muted);">
+                  <li><strong>AEPap:</strong> Asociación Española de Pediatría de Atención Primaria (Pediamécum).</li>
+                  <li><strong>Guía ABE:</strong> Infecciones en Pediatría: Guía rápida para la selección del tratamiento antimicrobiano empírico.</li>
+                  <li><strong>AEMPS:</strong> Centro de Información Online de Medicamentos de la Agencia Española de Medicamentos (CIMA).</li>
+                  <li><strong>OMS / WHO:</strong> Lista modelo de medicamentos esenciales para niños de la OMS.</li>
+                </ul>
+
+                <div class="clinical-alert warning" style="margin-top: 1rem;">
+                  <span class="clinical-alert-icon">⚠️</span>
+                  <div>
+                    <strong>Regla de Oro en Pediatría:</strong>
+                    La dosis calculada según el peso del paciente <em>nunca debe exceder la dosis recomendada para un adulto</em> estándar para la misma indicación.
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+
+        <!-- ==========================================
+             9. VISTA CONFIGURACIÓN
+             ========================================== -->
+        <section id="view-settings" class="view-panel">
+          <div class="card" style="max-width: 720px; margin: 0 auto;">
+            <div class="card-header">
+              <h2 class="card-title">
+                <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                Preferencias y Parámetros del Sistema
+              </h2>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Número de Decimales para Volúmenes (mL)</label>
+              <select id="settingDecimals" class="form-select">
+                <option value="0">0 decimales (ej: 4 mL)</option>
+                <option value="1">1 decimal (ej: 4.2 mL)</option>
+                <option value="2" selected>2 decimales (ej: 4.25 mL)</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Tema Visual</label>
+              <select id="settingTheme" class="form-select">
+                <option value="light">Modo Claro (Clínico Estándar)</option>
+                <option value="dark">Modo Oscuro (Guardias / Nocturno)</option>
+              </select>
+            </div>
+
+            <div class="form-group" style="display: flex; align-items: center; justify-content: space-between; padding: 0.5rem 0;">
+              <div>
+                <div style="font-weight: 600; font-size: 0.95rem;">Mostrar Desglose de Fórmulas Matemáticas</div>
+                <div style="font-size: 0.8rem; color: var(--text-muted);">Visualizar fórmulas operativas debajo de los resultados</div>
+              </div>
+              <input type="checkbox" id="settingShowFormulas" checked style="width: 20px; height: 20px;">
+            </div>
+
+            <div class="form-group" style="display: flex; align-items: center; justify-content: space-between; padding: 0.5rem 0;">
+              <div>
+                <div style="font-weight: 600; font-size: 0.95rem;">Alertas Visuales de Seguridad</div>
+                <div style="font-size: 0.8rem; color: var(--text-muted);">Mostrar cuadro de validación verde/amarillo/rojo</div>
+              </div>
+              <input type="checkbox" id="settingShowAlerts" checked style="width: 20px; height: 20px;">
+            </div>
+
+            <div style="margin-top: 2rem; border-top: 1px solid var(--border-color); padding-top: 1.25rem;">
+              <button class="btn btn-primary" id="btnSaveSettings" style="width: 100%;">
+                Guardar Preferencias
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <!-- AVISO DE RESPONSABILIDAD MÉDICA OBLIGATORIO -->
+        <div class="medical-disclaimer-banner">
+          <svg class="icon icon-lg" style="color: var(--warning); flex-shrink: 0;" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          <div>
+            <strong>Descargo de Responsabilidad Clínica:</strong> Herramienta de apoyo matemático. No sustituye la prescripción facultativa, el juicio clínico ni la consulta de fichas técnicas oficiales actualizadas. Verifique medicamento, concentración, vía, dosis, intervalo y límites máximos antes de administrar cualquier fármaco a un paciente.
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+
+  <!-- ==========================================
+       MODAL: ¿CÓMO SE CALCULÓ? (PASO A PASO)
+       ========================================== -->
+  <div class="modal-backdrop" id="explainModal">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h3 class="modal-title">
+          <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+          Procedimiento Matemático Paso a Paso
+        </h3>
+        <button class="btn-icon" id="btnCloseExplainModal" style="border:none;">
+          <svg class="icon" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="modal-body" id="explainModalBody">
+        <!-- Contenido generado paso a paso -->
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="btnCloseExplainBtn">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ==========================================
+       MODAL: EDICIÓN RÁPIDA DE PACIENTE
+       ========================================== -->
+  <div class="modal-backdrop" id="patientModal">
+    <div class="modal-container" style="max-width: 480px;">
+      <div class="modal-header">
+        <h3 class="modal-title">
+          <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="7" r="4"/><path d="M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/></svg>
+          Datos del Paciente Actual
+        </h3>
+        <button class="btn-icon" id="btnClosePatientModal" style="border:none;">
+          <svg class="icon" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">Peso en Kilogramos (kg) <span style="color:var(--danger)">*</span></label>
+          <input type="number" id="modalPatientWeight" class="form-input" step="0.1" min="0.5" max="150" value="18">
+        </div>
+        <div class="grid grid-2">
+          <div class="form-group">
+            <label class="form-label">Edad</label>
+            <input type="number" id="modalPatientAge" class="form-input" value="4">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Unidad de Edad</label>
+            <select id="modalPatientAgeUnit" class="form-select">
+              <option value="years">Años</option>
+              <option value="months">Meses</option>
+              <option value="days">Días</option>
+            </select>
+          </div>
+        </div>
+        <div class="grid grid-2">
+          <div class="form-group">
+            <label class="form-label">Talla (cm)</label>
+            <input type="number" id="modalPatientHeight" class="form-input" value="102">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Sexo</label>
+            <select id="modalPatientSex" class="form-select">
+              <option value="M">Masculino</option>
+              <option value="F">Femenino</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="btnCancelPatientModal">Cancelar</button>
+        <button class="btn btn-primary" id="btnSavePatientModal">Actualizar Paciente</button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- TOAST CONTAINER -->
+  <div class="toast-container" id="toastContainer"></div>
+
+
+  <!-- ==========================================================================
+       ARQUITECTURA JAVASCRIPT MODULAR
+       ========================================================================== -->
+  <script>
+    /**
+     * MÓDULO: CONFIG
+     * Maneja preferencias, decimales, tema y persistencia básica
+     */
+    const CONFIG = {
+      decimals: 2,
+      theme: 'light',
+      showFormulas: true,
+      showAlerts: true,
+
+      init() {
+        const saved = localStorage.getItem('pediatria_config');
+        if (saved) {
+          try {
+            const parsed = JSON.parse(saved);
+            this.decimals = parsed.decimals !== undefined ? parsed.decimals : 2;
+            this.theme = parsed.theme || 'light';
+            this.showFormulas = parsed.showFormulas !== undefined ? parsed.showFormulas : true;
+            this.showAlerts = parsed.showAlerts !== undefined ? parsed.showAlerts : true;
+          } catch (e) {
+            console.error('Error cargando configuración', e);
+          }
+        }
+        this.applyTheme(this.theme);
+      },
+
+      save() {
+        localStorage.setItem('pediatria_config', JSON.stringify({
+          decimals: this.decimals,
+          theme: this.theme,
+          showFormulas: this.showFormulas,
+          showAlerts: this.showAlerts
+        }));
+      },
+
+      applyTheme(theme) {
+        this.theme = theme;
+        document.documentElement.setAttribute('data-theme', theme);
+        const sun = document.getElementById('themeIconSun');
+        const moon = document.getElementById('themeIconMoon');
+        if (sun && moon) {
+          if (theme === 'dark') {
+            sun.style.display = 'none';
+            moon.style.display = 'inline-block';
+          } else {
+            sun.style.display = 'inline-block';
+            moon.style.display = 'none';
+          }
+        }
+      }
+    };
+
+    /**
+     * MÓDULO: DATABASE
+     * Base de datos farmacológica rigurosa basada en Fichas Técnicas Oficiales
+     * (AEPap / Pediamécum / Guía ABE / OMS)
+     */
+    const DATABASE = {
+      drugs: [
+        {
+          id: 'paracetamol',
+          name: 'Paracetamol',
+          generic: 'Paracetamol (Acetaminofén)',
+          category: 'Analgésico / Antipirético',
+          route: 'Oral',
+          presentations: [
+            { name: 'Gotas 100 mg/mL (10%)', mg: 100, ml: 1, unit: 'mL' },
+            { name: 'Solución 120 mg/5 mL (24 mg/mL)', mg: 120, ml: 5, unit: 'mL' },
+            { name: 'Solución 160 mg/5 mL (32 mg/mL)', mg: 160, ml: 5, unit: 'mL' },
+            { name: 'Suspensión 250 mg/5 mL (50 mg/mL)', mg: 250, ml: 5, unit: 'mL' }
+          ],
+          defaultPresentationIndex: 0,
+          doseType: 'per_dose',
+          standardDose: 15, // mg/kg/dosis
+          minDose: 10,
+          maxDose: 15,
+          doseUnit: 'mg/kg/toma',
+          maxSingleDoseMg: 1000,
+          maxDailyDoseMg: 2400, // Máximo habitual pediátrico 60 mg/kg/día o 2.4-3g
+          recommendedFrequencies: [4, 6, 8],
+          defaultFrequency: 6,
+          minAgeMonths: 0,
+          maxAgeYears: 18,
+          observations: 'Intervalo mínimo de 4 horas. No sobrepasar 60 mg/kg/día ni 4 g/día en adolescentes. Riesgo de toxicidad hepática.',
+          source: 'AEPap / Pediamécum',
+          lastUpdated: '2026-01'
+        },
+        {
+          id: 'ibuprofeno',
+          name: 'Ibuprofeno',
+          generic: 'Ibuprofeno',
+          category: 'AINE / Antipirético',
+          route: 'Oral',
+          presentations: [
+            { name: 'Suspensión 100 mg/5 mL (20 mg/mL - 2%)', mg: 100, ml: 5, unit: 'mL' },
+            { name: 'Suspensión 200 mg/5 mL (40 mg/mL - 4%)', mg: 200, ml: 5, unit: 'mL' },
+            { name: 'Gotas orales 40 mg/mL', mg: 40, ml: 1, unit: 'mL' }
+          ],
+          defaultPresentationIndex: 0,
+          doseType: 'per_dose',
+          standardDose: 10, // mg/kg/dosis
+          minDose: 5,
+          maxDose: 10,
+          doseUnit: 'mg/kg/toma',
+          maxSingleDoseMg: 400,
+          maxDailyDoseMg: 1200, // hasta 2400 en adolescentes mayores
+          recommendedFrequencies: [6, 8],
+          defaultFrequency: 8,
+          minAgeMonths: 3, // No recomendado en <3 meses o <5 kg
+          maxAgeYears: 18,
+          observations: 'Contraindicado en menores de 3 meses o <5 kg. Administrar con alimentos. No usar en varicela por riesgo de sobreinfección cutánea grave.',
+          source: 'AEPap / Guía ABE',
+          lastUpdated: '2026-01'
+        },
+        {
+          id: 'amoxicilina',
+          name: 'Amoxicilina',
+          generic: 'Amoxicilina trihidrato',
+          category: 'Antibiótico Betalactámico',
+          route: 'Oral',
+          presentations: [
+            { name: 'Suspensión 250 mg/5 mL (50 mg/mL)', mg: 250, ml: 5, unit: 'mL' },
+            { name: 'Suspensión 125 mg/5 mL (25 mg/mL)', mg: 125, ml: 5, unit: 'mL' },
+            { name: 'Suspensión 500 mg/5 mL (100 mg/mL)', mg: 500, ml: 5, unit: 'mL' }
+          ],
+          defaultPresentationIndex: 0,
+          doseType: 'per_day',
+          standardDose: 50, // 40-50 estándar, hasta 80-90 en OMA
+          minDose: 40,
+          maxDose: 90,
+          doseUnit: 'mg/kg/día',
+          maxSingleDoseMg: 1000,
+          maxDailyDoseMg: 3000,
+          recommendedFrequencies: [8, 12],
+          defaultFrequency: 8,
+          minAgeMonths: 1,
+          maxAgeYears: 18,
+          observations: 'Dosis alta (80-90 mg/kg/día) indicada en otitis media aguda o neumonía comunitaria con sospecha de neumococo resistente.',
+          source: 'Guía ABE / AEP',
+          lastUpdated: '2026-01'
+        },
+        {
+          id: 'amoxicilina_clavulanico',
+          name: 'Amoxicilina / Clavulánico',
+          generic: 'Amoxicilina con Ácido Clavulánico',
+          category: 'Antibiótico Betalactámico + Inhibidor',
+          route: 'Oral',
+          presentations: [
+            { name: 'Suspensión 250/62.5 mg en 5 mL (Ratio 4:1)', mg: 250, ml: 5, unit: 'mL' },
+            { name: 'Suspensión 400/57 mg en 5 mL (Ratio 7:1 / 8:1)', mg: 400, ml: 5, unit: 'mL' },
+            { name: 'Suspensión 100/12.5 mg/mL', mg: 100, ml: 1, unit: 'mL' }
+          ],
+          defaultPresentationIndex: 1,
+          doseType: 'per_day',
+          standardDose: 50, // Basada en el componente de amoxicilina
+          minDose: 40,
+          maxDose: 80,
+          doseUnit: 'mg/kg/día',
+          maxSingleDoseMg: 1000,
+          maxDailyDoseMg: 3000,
+          recommendedFrequencies: [8, 12],
+          defaultFrequency: 12,
+          minAgeMonths: 2,
+          maxAgeYears: 18,
+          observations: 'Cálculo formulado sobre el componente de Amoxicilina. La fórmula 8:1 (400/57) reduce incidencia de diarrea al dosificarse cada 12 horas.',
+          source: 'Guía ABE',
+          lastUpdated: '2026-01'
+        },
+        {
+          id: 'cefalexina',
+          name: 'Cefalexina',
+          generic: 'Cefalexina monohidrato',
+          category: 'Cefalosporina 1ª Generación',
+          route: 'Oral',
+          presentations: [
+            { name: 'Suspensión 250 mg/5 mL (50 mg/mL)', mg: 250, ml: 5, unit: 'mL' },
+            { name: 'Suspensión 125 mg/5 mL (25 mg/mL)', mg: 125, ml: 5, unit: 'mL' }
+          ],
+          defaultPresentationIndex: 0,
+          doseType: 'per_day',
+          standardDose: 50,
+          minDose: 25,
+          maxDose: 100,
+          doseUnit: 'mg/kg/día',
+          maxSingleDoseMg: 1000,
+          maxDailyDoseMg: 4000,
+          recommendedFrequencies: [6, 8],
+          defaultFrequency: 8,
+          minAgeMonths: 1,
+          maxAgeYears: 18,
+          observations: 'De elección en infecciones cutáneas y de tejidos blandos por Staphylococcus aureus sensible a meticilina.',
+          source: 'Pediamécum',
+          lastUpdated: '2026-01'
+        },
+        {
+          id: 'ceftriaxona',
+          name: 'Ceftriaxona',
+          generic: 'Ceftriaxona disódica',
+          category: 'Cefalosporina 3ª Generación',
+          route: 'Intravenosa / Intramuscular',
+          presentations: [
+            { name: 'Vial reconstituido 500 mg en 5 mL (100 mg/mL)', mg: 500, ml: 5, unit: 'mL' },
+            { name: 'Vial reconstituido 1000 mg en 10 mL (100 mg/mL)', mg: 1000, ml: 10, unit: 'mL' }
+          ],
+          defaultPresentationIndex: 1,
+          doseType: 'per_day',
+          standardDose: 50,
+          minDose: 50,
+          maxDose: 100,
+          doseUnit: 'mg/kg/día',
+          maxSingleDoseMg: 2000,
+          maxDailyDoseMg: 4000,
+          recommendedFrequencies: [12, 24],
+          defaultFrequency: 24,
+          minAgeMonths: 1,
+          maxAgeYears: 18,
+          observations: 'Contraindicado en neonatos con hiperbilirrubinemia o concomitantemente con soluciones intravenosas con calcio.',
+          source: 'AEPap / Guía ABE',
+          lastUpdated: '2026-01'
+        },
+        {
+          id: 'azitromicina',
+          name: 'Azitromicina',
+          generic: 'Azitromicina dihidrato',
+          category: 'Macrólido',
+          route: 'Oral',
+          presentations: [
+            { name: 'Suspensión 200 mg/5 mL (40 mg/mL)', mg: 200, ml: 5, unit: 'mL' },
+            { name: 'Suspensión 100 mg/5 mL (20 mg/mL)', mg: 100, ml: 5, unit: 'mL' }
+          ],
+          defaultPresentationIndex: 0,
+          doseType: 'per_day',
+          standardDose: 10,
+          minDose: 10,
+          maxDose: 10,
+          doseUnit: 'mg/kg/día',
+          maxSingleDoseMg: 500,
+          maxDailyDoseMg: 500,
+          recommendedFrequencies: [24],
+          defaultFrequency: 24,
+          minAgeMonths: 6,
+          maxAgeYears: 18,
+          observations: 'Pauta habitual de 3 días consecutivos (10 mg/kg/día cada 24 horas) o 5 días (10 mg/kg el día 1, luego 5 mg/kg/día los días 2-5).',
+          source: 'AEPap',
+          lastUpdated: '2026-01'
+        },
+        {
+          id: 'loratadina',
+          name: 'Loratadina',
+          generic: 'Loratadina',
+          category: 'Antihistamínico H1',
+          route: 'Oral',
+          presentations: [
+            { name: 'Jarabe 5 mg/5 mL (1 mg/mL)', mg: 5, ml: 5, unit: 'mL' }
+          ],
+          defaultPresentationIndex: 0,
+          doseType: 'per_dose',
+          standardDose: 0.2, // ~0.2 mg/kg o pauta fija por tramos de peso
+          minDose: 0.15,
+          maxDose: 0.25,
+          doseUnit: 'mg/kg/toma',
+          maxSingleDoseMg: 10,
+          maxDailyDoseMg: 10,
+          recommendedFrequencies: [24],
+          defaultFrequency: 24,
+          minAgeMonths: 24, // >2 años
+          maxAgeYears: 18,
+          observations: 'Pauta fija habitual: Niños de 2 a 12 años con peso <30 kg: 5 mg (5 mL) cada 24 h. Niños >30 kg: 10 mg (10 mL) cada 24 h.',
+          source: 'Pediamécum',
+          lastUpdated: '2026-01'
+        },
+        {
+          id: 'salbutamol',
+          name: 'Salbutamol Oral',
+          generic: 'Salbutamol sulfato',
+          category: 'Broncodilatador Beta-2 agonista',
+          route: 'Oral',
+          presentations: [
+            { name: 'Jarabe 2 mg/5 mL (0.4 mg/mL)', mg: 2, ml: 5, unit: 'mL' }
+          ],
+          defaultPresentationIndex: 0,
+          doseType: 'per_dose',
+          standardDose: 0.1, // 0.1 - 0.15 mg/kg/toma
+          minDose: 0.1,
+          maxDose: 0.15,
+          doseUnit: 'mg/kg/toma',
+          maxSingleDoseMg: 4,
+          maxDailyDoseMg: 12,
+          recommendedFrequencies: [6, 8],
+          defaultFrequency: 8,
+          minAgeMonths: 24,
+          maxAgeYears: 18,
+          observations: 'La vía inhalada es siempre la preferida en asma y broncoespasmo. La vía oral presenta más efectos adversos (taquicardia, temblor).',
+          source: 'AEPap',
+          lastUpdated: '2026-01'
+        },
+        {
+          id: 'ondansetron',
+          name: 'Ondansetrón',
+          generic: 'Ondansetrón clorhidrato',
+          category: 'Antiemético (Antagonista 5-HT3)',
+          route: 'Oral',
+          presentations: [
+            { name: 'Solución oral 4 mg/5 mL (0.8 mg/mL)', mg: 4, ml: 5, unit: 'mL' },
+            { name: 'Ampolla inyectable 2 mg/mL (4 mg en 2 mL)', mg: 4, ml: 2, unit: 'mL' }
+          ],
+          defaultPresentationIndex: 0,
+          doseType: 'per_dose',
+          standardDose: 0.15, // 0.15 mg/kg/dosis
+          minDose: 0.1,
+          maxDose: 0.15,
+          doseUnit: 'mg/kg/toma',
+          maxSingleDoseMg: 8,
+          maxDailyDoseMg: 24,
+          recommendedFrequencies: [8, 12],
+          defaultFrequency: 8,
+          minAgeMonths: 6,
+          maxAgeYears: 18,
+          observations: 'Eficaz en gastroenteritis aguda con vómitos persistentes para facilitar rehidratación oral. Dosis máxima única: 4 mg en niños pequeños, 8 mg en >12 años.',
+          source: 'Guía ABE / AEP',
+          lastUpdated: '2026-01'
+        }
+      ],
+
+      getDrugById(id) {
+        return this.drugs.find(d => d.id === id);
+      },
+
+      search(query) {
+        if (!query || query.trim() === '') return this.drugs;
+        const q = query.toLowerCase().trim();
+        return this.drugs.filter(d => 
+          d.name.toLowerCase().includes(q) || 
+          d.generic.toLowerCase().includes(q) ||
+          d.category.toLowerCase().includes(q)
+        );
+      }
+    };
+
+    /**
+     * MÓDULO: PATIENT
+     * Estado del paciente activo
+     */
+    const PATIENT = {
+      weightKg: 18.0,
+      ageValue: 4,
+      ageUnit: 'years',
+      heightCm: 102,
+      sex: 'M',
+      bsa: 0.71,
+
+      update(data) {
+        if (data.weightKg !== undefined && !isNaN(data.weightKg) && data.weightKg > 0) {
+          this.weightKg = parseFloat(data.weightKg);
+        }
+        if (data.ageValue !== undefined && !isNaN(data.ageValue)) {
+          this.ageValue = parseFloat(data.ageValue);
+        }
+        if (data.ageUnit !== undefined) this.ageUnit = data.ageUnit;
+        if (data.heightCm !== undefined && !isNaN(data.heightCm)) {
+          this.heightCm = parseFloat(data.heightCm);
+        }
+        if (data.sex !== undefined) this.sex = data.sex;
+
+        this.bsa = CALCULATOR.calculateBSA(this.weightKg, this.heightCm, 'mosteller');
+        this.save();
+        UI.syncPatientState();
+      },
+
+      getAgeInMonths() {
+        if (this.ageUnit === 'years') return this.ageValue * 12;
+        if (this.ageUnit === 'months') return this.ageValue;
+        if (this.ageUnit === 'days') return this.ageValue / 30.4;
+        return 0;
+      },
+
+      save() {
+        sessionStorage.setItem('current_patient', JSON.stringify({
+          weightKg: this.weightKg,
+          ageValue: this.ageValue,
+          ageUnit: this.ageUnit,
+          heightCm: this.heightCm,
+          sex: this.sex,
+          bsa: this.bsa
+        }));
+      },
+
+      load() {
+        const saved = sessionStorage.getItem('current_patient');
+        if (saved) {
+          try {
+            const parsed = JSON.parse(saved);
+            this.weightKg = parsed.weightKg || 18.0;
+            this.ageValue = parsed.ageValue || 4;
+            this.ageUnit = parsed.ageUnit || 'years';
+            this.heightCm = parsed.heightCm || 102;
+            this.sex = parsed.sex || 'M';
+            this.bsa = parsed.bsa || 0.71;
+          } catch(e) {}
+        }
+      }
+    };
+
+    /**
+     * MÓDULO: UTILITIES
+     * Manejo numérico robusto, formateo y protección contra NaN/Infinity
+     */
+    const UTILITIES = {
+      safeNum(value, fallback = 0) {
+        const n = parseFloat(value);
+        return (!isNaN(n) && isFinite(n)) ? n : fallback;
+      },
+
+      format(val, decimals = CONFIG.decimals) {
+        const n = this.safeNum(val, 0);
+        return n.toLocaleString('es-ES', {
+          minimumFractionDigits: decimals,
+          maximumFractionDigits: decimals
+        });
+      },
+
+      clamp(val, min, max) {
+        return Math.min(Math.max(val, min), max);
+      },
+
+      getTimeString() {
+        const d = new Date();
+        return d.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+      },
+
+      getDateString() {
+        const d = new Date();
+        return d.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
+      }
+    };
+
+    /**
+     * MÓDULO: VALIDATION
+     * Reglas clínicas de seguridad y barreras de entrada
+     */
+    const VALIDATION = {
+      validatePatient(patient) {
+        const errors = [];
+        if (!patient.weightKg || isNaN(patient.weightKg) || patient.weightKg <= 0) {
+          errors.push('El peso del paciente debe ser un valor mayor que 0 kg.');
+        } else if (patient.weightKg > 150) {
+          errors.push('El peso introducido supera el rango pediátrico estándar (>150 kg). Verifique el valor.');
+        }
+
+        if (patient.heightCm && (patient.heightCm <= 0 || patient.heightCm > 250)) {
+          errors.push('La talla introducida se encuentra fuera del rango fisiológico normal.');
+        }
+
+        return {
+          isValid: errors.length === 0,
+          errors
+        };
+      },
+
+      validateDoseParams(params) {
+        const errors = [];
+        if (!params.weight || params.weight <= 0) {
+          errors.push('Debe registrar un peso de paciente válido.');
+        }
+        if (!params.doseVal || params.doseVal <= 0) {
+          errors.push('La dosis indicada debe ser un número positivo.');
+        }
+        if (!params.concentrationMg || params.concentrationMg <= 0 || !params.concentrationMl || params.concentrationMl <= 0) {
+          errors.push('La concentración del medicamento debe ser válida (mg y mL mayores a cero).');
+        }
+        return {
+          isValid: errors.length === 0,
+          errors
+        };
+      }
+    };
+
+    /**
+     * MÓDULO: CALCULATOR
+     * Motor matemático desacoplado de dosificación y superficie corporal
+     */
+    const CALCULATOR = {
+      calculateBSA(weightKg, heightCm, formula = 'mosteller') {
+        const w = UTILITIES.safeNum(weightKg, 0);
+        const h = UTILITIES.safeNum(heightCm, 0);
+        if (w <= 0 || h <= 0) return 0;
+
+        if (formula === 'dubois') {
+          // Du Bois: 0.007184 * W^0.425 * H^0.725
+          const bsa = 0.007184 * Math.pow(w, 0.425) * Math.pow(h, 0.725);
+          return UTILITIES.safeNum(bsa, 0);
+        }
+
+        // Mosteller: sqrt((W * H) / 3600)
+        const bsa = Math.sqrt((w * h) / 3600);
+        return UTILITIES.safeNum(bsa, 0);
+      },
+
+      computePediatricDose(params) {
+        // Validación previa
+        const val = VALIDATION.validateDoseParams(params);
+        if (!val.isValid) {
+          return {
+            isValid: false,
+            errorMessage: val.errors.join(' ')
+          };
+        }
+
+        const weight = params.weight;
+        const doseVal = params.doseVal;
+        const doseType = params.doseType; // 'per_dose' o 'per_day'
+        const frequencyHours = UTILITIES.safeNum(params.frequencyHours, 8);
+        const dosesPerDay = Math.max(1, Math.round(24 / frequencyHours));
+        const concMg = params.concentrationMg;
+        const concMl = params.concentrationMl;
+        const concRatio = concMg / concMl; // mg por cada mL
+
+        let mgPerDose = 0;
+        let dailyMg = 0;
+
+        if (doseType === 'per_dose') {
+          // Fórmula: Dosis por toma = peso * dosis
+          mgPerDose = weight * doseVal;
+          dailyMg = mgPerDose * dosesPerDay;
+        } else {
+          // Fórmula: Dosis diaria = peso * dosis
+          dailyMg = weight * doseVal;
+          mgPerDose = dailyMg / dosesPerDay;
+        }
+
+        // Conversión a volumen (mL): Dosis en mg / concentración en mg/mL
+        const mlPerDose = mgPerDose / concRatio;
+        const dailyMl = dailyMg / concRatio;
+
+        // Evaluación de seguridad clínica
+        let alertLevel = 'safe'; // 'safe', 'warning', 'danger'
+        let alertMessage = 'Cálculo dentro de parámetros posológicos habituales.';
+
+        const drug = params.drugRef;
+        if (drug) {
+          // 1. Validar edad mínima
+          const ageMonths = params.patientAgeMonths !== undefined ? params.patientAgeMonths : 12;
+          if (drug.minAgeMonths && ageMonths < drug.minAgeMonths) {
+            alertLevel = 'danger';
+            alertMessage = `PRECAUCIÓN: Medicamento desaconsejado o no evaluado en menores de ${drug.minAgeMonths} meses.`;
+          }
+
+          // 2. Comparar con Dosis Máxima Diaria
+          if (drug.maxDailyDoseMg && dailyMg > drug.maxDailyDoseMg) {
+            alertLevel = 'danger';
+            alertMessage = `ALERTA CRÍTICA: La dosis diaria total calculada (${UTILITIES.format(dailyMg, 1)} mg) SUPERA el límite máximo seguro establecido (${drug.maxDailyDoseMg} mg/día). Debe ajustarse a la dosis techo del adulto.`;
+          } else if (drug.maxSingleDoseMg && mgPerDose > drug.maxSingleDoseMg) {
+            alertLevel = 'danger';
+            alertMessage = `ALERTA CRÍTICA: La dosis por toma calculada (${UTILITIES.format(mgPerDose, 1)} mg) SUPERA el límite máximo seguro por administración (${drug.maxSingleDoseMg} mg/toma).`;
+          } else if (drug.maxDailyDoseMg && dailyMg >= drug.maxDailyDoseMg * 0.9) {
+            alertLevel = 'warning';
+            alertMessage = `REVISAR: El resultado diario (${UTILITIES.format(dailyMg, 1)} mg) se encuentra muy próximo al límite máximo permitido (${drug.maxDailyDoseMg} mg/día).`;
+          }
+        }
+
+        return {
+          isValid: true,
+          weight,
+          doseVal,
+          doseType,
+          frequencyHours,
+          dosesPerDay,
+          concMg,
+          concMl,
+          concRatio,
+          mgPerDose,
+          mlPerDose,
+          dailyMg,
+          dailyMl,
+          alertLevel,
+          alertMessage,
+          drug
+        };
+      }
+    };
+
+    /**
+     * MÓDULO: CONVERTER
+     * Conversor rápido bidireccional mg <-> mL
+     */
+    const CONVERTER = {
+      mgToMl(mg, refMg, refMl) {
+        const m = UTILITIES.safeNum(mg, 0);
+        const rMg = UTILITIES.safeNum(refMg, 0);
+        const rMl = UTILITIES.safeNum(refMl, 0);
+        if (rMg <= 0 || rMl <= 0) return 0;
+        const ratio = rMg / rMl;
+        return m / ratio;
+      },
+
+      mlToMg(ml, refMg, refMl) {
+        const v = UTILITIES.safeNum(ml, 0);
+        const rMg = UTILITIES.safeNum(refMg, 0);
+        const rMl = UTILITIES.safeNum(refMl, 0);
+        if (rMg <= 0 || rMl <= 0) return 0;
+        const ratio = rMg / rMl;
+        return v * ratio;
+      }
+    };
+
+    /**
+     * MÓDULO: HISTORY
+     * Gestión del historial de cálculos en sesión
+     */
+    const HISTORY = {
+      items: [],
+
+      init() {
+        const saved = sessionStorage.getItem('pediatria_history');
+        if (saved) {
+          try {
+            this.items = JSON.parse(saved);
+          } catch(e) {
+            this.items = [];
+          }
+        }
+        if (this.items.length === 0) {
+          // Registro inicial demostrativo
+          this.items.push({
+            id: Date.now(),
+            date: UTILITIES.getDateString(),
+            time: UTILITIES.getTimeString(),
+            patientWeight: 18,
+            patientDesc: '18 kg (4 años)',
+            drugId: 'paracetamol',
+            drugName: 'Paracetamol',
+            presentationName: 'Gotas 100 mg/mL (10%)',
+            doseVal: 15,
+            doseType: 'per_dose',
+            doseUnit: 'mg/kg/toma',
+            frequencyHours: 8,
+            mgPerDose: 270,
+            mlPerDose: 2.7,
+            dailyMg: 810,
+            alertLevel: 'safe'
+          });
+        }
+      },
+
+      add(entry) {
+        this.items.unshift(entry);
+        if (this.items.length > 50) this.items.pop();
+        this.save();
+        UI.renderHistoryTable();
+        UI.updateDashboardKPIs();
+      },
+
+      remove(id) {
+        this.items = this.items.filter(item => item.id !== id);
+        this.save();
+        UI.renderHistoryTable();
+        UI.updateDashboardKPIs();
+      },
+
+      clear() {
+        this.items = [];
+        this.save();
+        UI.renderHistoryTable();
+        UI.updateDashboardKPIs();
+      },
+
+      save() {
+        sessionStorage.setItem('pediatria_history', JSON.stringify(this.items));
+      }
+    };
+
+    /**
+     * MÓDULO: UI
+     * Control visual, sincronización del DOM, eventos e interactividad
+     */
+    const UI = {
+      currentView: 'dashboard',
+      selectedDrug: null,
+      lastCalculationResult: null,
+
+      init() {
+        this.selectedDrug = DATABASE.getDrugById('paracetamol');
+        this.setupNavigation();
+        this.setupEventListeners();
+        this.populateDrugCatalog();
+        this.populateDashboardTags();
+        this.initCalculatorControls();
+        this.syncPatientState();
+        this.executeMainCalculation();
+        this.renderHistoryTable();
+        this.updateDashboardKPIs();
+        this.initConverterListeners();
+      },
+
+      setupNavigation() {
+        // Enlaces del sidebar
+        const navLinks = document.querySelectorAll('.nav-item');
+        navLinks.forEach(link => {
+          link.addEventListener('click', () => {
+            const view = link.getAttribute('data-view');
+            this.navigateTo(view);
+            // Si está en móvil, cerrar sidebar
+            document.getElementById('sidebar').classList.remove('mobile-open');
+            document.getElementById('sidebarBackdrop').classList.remove('active');
+          });
+        });
+
+        // Colapso de sidebar
+        const collapseBtn = document.getElementById('sidebarCollapseBtn');
+        const sidebar = document.getElementById('sidebar');
+        collapseBtn.addEventListener('click', () => {
+          sidebar.classList.toggle('collapsed');
+        });
+
+        // Mobile hamburguesa
+        const mobileBtn = document.getElementById('mobileMenuBtn');
+        const backdrop = document.getElementById('sidebarBackdrop');
+        mobileBtn.addEventListener('click', () => {
+          sidebar.classList.add('mobile-open');
+          backdrop.classList.add('active');
+        });
+        backdrop.addEventListener('click', () => {
+          sidebar.classList.remove('mobile-open');
+          backdrop.classList.remove('active');
+        });
+
+        // Alternador de tema
+        document.getElementById('themeToggleBtn').addEventListener('click', () => {
+          const nextTheme = CONFIG.theme === 'light' ? 'dark' : 'light';
+          CONFIG.applyTheme(nextTheme);
+          CONFIG.save();
+          this.showToast(`Modo ${nextTheme === 'dark' ? 'oscuro' : 'claro'} activado`);
+        });
+      },
+
+      navigateTo(viewId) {
+        this.currentView = viewId;
+        // Ocultar todas las vistas
+        document.querySelectorAll('.view-panel').forEach(p => p.classList.remove('active'));
+        // Activar la vista solicitada
+        const target = document.getElementById(`view-${viewId}`);
+        if (target) target.classList.add('active');
+
+        // Actualizar nav activo
+        document.querySelectorAll('.nav-item').forEach(link => {
+          if (link.getAttribute('data-view') === viewId) {
+            link.classList.add('active');
+          } else {
+            link.classList.remove('active');
+          }
+        });
+
+        // Actualizar título en topbar
+        const titles = {
+          'dashboard': 'Panel Principal',
+          'calculator': 'Calculadora de Dosis Pediátricas',
+          'drugs': 'Vademécum Pediátrico Clínico',
+          'weight-calc': 'Cálculo Directo por Peso',
+          'bsa': 'Superficie Corporal Pediátrica',
+          'converter': 'Conversor de Miligramos y Mililitros',
+          'history': 'Historial de Cálculos en Sesión',
+          'references': 'Fórmulas y Guías Farmacológicas',
+          'settings': 'Configuración del Sistema'
+        };
+        const titleEl = document.getElementById('currentViewTitle');
+        if (titleEl) titleEl.innerHTML = `<span>${titles[viewId] || 'Calculadora'}</span>`;
+
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      },
+
+      syncPatientState() {
+        // Actualizar topbar
+        const ageDesc = `${PATIENT.ageValue} ${PATIENT.ageUnit === 'years' ? 'años' : PATIENT.ageUnit === 'months' ? 'meses' : 'días'}`;
+        document.getElementById('topbarPatientText').textContent = `Paciente: ${UTILITIES.format(PATIENT.weightKg, 1)} kg (${ageDesc})`;
+
+        // Actualizar inputs en calculadora
+        const calcWeight = document.getElementById('calcWeight');
+        if (calcWeight && calcWeight !== document.activeElement) {
+          calcWeight.value = PATIENT.weightKg;
+        }
+        const calcAgeVal = document.getElementById('calcAgeValue');
+        if (calcAgeVal && calcAgeVal !== document.activeElement) {
+          calcAgeVal.value = PATIENT.ageValue;
+        }
+        const calcAgeUnit = document.getElementById('calcAgeUnit');
+        if (calcAgeUnit) calcAgeUnit.value = PATIENT.ageUnit;
+
+        const calcHeight = document.getElementById('calcHeight');
+        if (calcHeight && calcHeight !== document.activeElement) {
+          calcHeight.value = PATIENT.heightCm;
+        }
+        const calcSex = document.getElementById('calcSex');
+        if (calcSex) calcSex.value = PATIENT.sex;
+
+        // Actualizar calculadora BSA y Peso Rápido
+        const bsaWeight = document.getElementById('bsaInputWeight');
+        if (bsaWeight) bsaWeight.value = PATIENT.weightKg;
+        const bsaHeight = document.getElementById('bsaInputHeight');
+        if (bsaHeight) bsaHeight.value = PATIENT.heightCm;
+        const quickWeight = document.getElementById('quickWeight');
+        if (quickWeight) quickWeight.value = PATIENT.weightKg;
+
+        // Actualizar KPIs de Inicio
+        const kpiWeight = document.getElementById('kpiPatientWeight');
+        if (kpiWeight) kpiWeight.textContent = `${UTILITIES.format(PATIENT.weightKg, 1)} kg`;
+        const kpiSub = document.getElementById('kpiPatientSub');
+        if (kpiSub) kpiSub.textContent = `Edad: ${ageDesc} • ${PATIENT.sex === 'M' ? 'Varón' : 'Mujer'}`;
+        const kpiBSA = document.getElementById('kpiPatientBSA');
+        if (kpiBSA) kpiBSA.textContent = `${UTILITIES.format(PATIENT.bsa, 2)} m²`;
+      },
+
+      initCalculatorControls() {
+        // Seleccionar fármaco inicial
+        if (this.selectedDrug) {
+          this.loadDrugIntoCalculator(this.selectedDrug);
+        }
+
+        // Buscador interactivo
+        const searchInput = document.getElementById('calcDrugSearch');
+        const resultsBox = document.getElementById('drugSearchResults');
+
+        searchInput.addEventListener('input', (e) => {
+          const q = e.target.value;
+          const matches = DATABASE.search(q);
+          if (matches.length > 0) {
+            resultsBox.innerHTML = matches.map(m => `
+              <div class="search-result-item" data-id="${m.id}">
+                <div>
+                  <div class="search-item-name">${m.name}</div>
+                  <div class="search-item-meta">${m.generic} • ${m.category}</div>
+                </div>
+                <span style="font-size: 0.75rem; background: var(--primary-light); color: var(--primary); padding: 0.2rem 0.5rem; border-radius: 4px;">
+                  ${m.presentations.length} present.
+                </span>
+              </div>
+            `).join('');
+            resultsBox.classList.add('show');
+          } else {
+            resultsBox.innerHTML = '<div style="padding: 0.75rem; color: var(--text-muted); text-align: center;">No se encontraron medicamentos</div>';
+            resultsBox.classList.add('show');
+          }
+        });
+
+        // Selección desde resultados
+        resultsBox.addEventListener('click', (e) => {
+          const item = e.target.closest('.search-result-item');
+          if (item) {
+            const drugId = item.getAttribute('data-id');
+            const drug = DATABASE.getDrugById(drugId);
+            if (drug) {
+              this.loadDrugIntoCalculator(drug);
+              resultsBox.classList.remove('show');
+              this.executeMainCalculation();
+            }
+          }
+        });
+
+        // Ocultar dropdown al hacer clic fuera
+        document.addEventListener('click', (e) => {
+          if (!searchInput.contains(e.target) && !resultsBox.contains(e.target)) {
+            resultsBox.classList.remove('show');
+          }
+        });
+
+        // Cambio de presentación
+        document.getElementById('calcPresentationSelect').addEventListener('change', (e) => {
+          const idx = parseInt(e.target.value, 10);
+          if (this.selectedDrug && this.selectedDrug.presentations[idx]) {
+            const pres = this.selectedDrug.presentations[idx];
+            const ratio = pres.mg / pres.ml;
+            document.getElementById('calcConcentrationMgMl').value = UTILITIES.format(ratio, 2);
+            this.executeMainCalculation();
+          }
+        });
+
+        // Eventos de recálculo en vivo en los campos de entrada
+        const recalcInputs = ['calcWeight', 'calcDoseVal', 'calcDoseType', 'calcFrequencySelect'];
+        recalcInputs.forEach(id => {
+          const el = document.getElementById(id);
+          if (el) {
+            el.addEventListener('input', () => {
+              if (id === 'calcWeight') {
+                PATIENT.update({ weightKg: el.value });
+              }
+              this.executeMainCalculation();
+            });
+            el.addEventListener('change', () => this.executeMainCalculation());
+          }
+        });
+
+        // Tipo de dosis cambia etiqueta
+        document.getElementById('calcDoseType').addEventListener('change', (e) => {
+          const unitSpan = document.getElementById('calcDoseValUnit');
+          if (unitSpan) {
+            unitSpan.textContent = e.target.value === 'per_dose' ? 'mg/kg/toma' : 'mg/kg/día';
+          }
+        });
+      },
+
+      loadDrugIntoCalculator(drug) {
+        this.selectedDrug = drug;
+        document.getElementById('calcDrugSearch').value = drug.name;
+        document.getElementById('calcRoute').value = drug.route;
+
+        // Llenar selector de presentaciones
+        const presSelect = document.getElementById('calcPresentationSelect');
+        presSelect.innerHTML = drug.presentations.map((p, idx) => `
+          <option value="${idx}">${p.name} (${UTILITIES.format(p.mg / p.ml, 1)} mg/mL)</option>
+        `).join('');
+
+        presSelect.value = drug.defaultPresentationIndex || 0;
+        const currentPres = drug.presentations[drug.defaultPresentationIndex || 0];
+        document.getElementById('calcConcentrationMgMl').value = UTILITIES.format(currentPres.mg / currentPres.ml, 2);
+
+        // Configurar tipo de dosis y dosis sugerida
+        document.getElementById('calcDoseType').value = drug.doseType;
+        document.getElementById('calcDoseVal').value = drug.standardDose;
+        document.getElementById('calcDoseValUnit').textContent = drug.doseType === 'per_dose' ? 'mg/kg/toma' : 'mg/kg/día';
+
+        // Frecuencia
+        const freqSelect = document.getElementById('calcFrequencySelect');
+        if (freqSelect) freqSelect.value = drug.defaultFrequency || 8;
+
+        // Observaciones
+        const obsEl = document.getElementById('calcDrugObservations');
+        if (obsEl) {
+          obsEl.textContent = drug.observations || 'Sin observaciones específicas.';
+        }
+      },
+
+      executeMainCalculation() {
+        const weight = UTILITIES.safeNum(document.getElementById('calcWeight').value, 0);
+        const doseVal = UTILITIES.safeNum(document.getElementById('calcDoseVal').value, 0);
+        const doseType = document.getElementById('calcDoseType').value;
+        const frequencyHours = parseInt(document.getElementById('calcFrequencySelect').value, 10);
+
+        if (!this.selectedDrug) return;
+
+        const presIdx = parseInt(document.getElementById('calcPresentationSelect').value, 10) || 0;
+        const presentation = this.selectedDrug.presentations[presIdx] || this.selectedDrug.presentations[0];
+
+        const calcParams = {
+          weight,
+          doseVal,
+          doseType,
+          frequencyHours,
+          concentrationMg: presentation.mg,
+          concentrationMl: presentation.ml,
+          patientAgeMonths: PATIENT.getAgeInMonths(),
+          drugRef: this.selectedDrug
+        };
+
+        const result = CALCULATOR.computePediatricDose(calcParams);
+        this.lastCalculationResult = result;
+
+        if (!result.isValid) {
+          // Mostrar advertencia visual clara
+          const alertBox = document.getElementById('calcAlertBox');
+          alertBox.className = 'clinical-alert danger';
+          document.getElementById('calcAlertIcon').textContent = '⚠️';
+          document.getElementById('calcAlertMessage').innerHTML = `<strong>Error de Parámetro:</strong> ${result.errorMessage}`;
+          return;
+        }
+
+        // Actualizar Tarjeta de Resultado
+        document.getElementById('calcResultDrugTitle').textContent = `💊 ${this.selectedDrug.name.toUpperCase()} (${presentation.name})`;
+        document.getElementById('resultMgPerDose').textContent = `${UTILITIES.format(result.mgPerDose, 1)} mg`;
+        document.getElementById('resultMlPerDose').textContent = `${UTILITIES.format(result.mlPerDose, CONFIG.decimals)} mL`;
+
+        document.getElementById('resultFrequency').textContent = `Cada ${result.frequencyHours} horas (${result.dosesPerDay} tomas/día)`;
+        document.getElementById('resultDailyMg').textContent = `${UTILITIES.format(result.dailyMg, 1)} mg/día`;
+        document.getElementById('resultDailyMl').textContent = `${UTILITIES.format(result.dailyMl, CONFIG.decimals)} mL/día`;
+        document.getElementById('resultMaxDaily').textContent = this.selectedDrug.maxDailyDoseMg ? `Máx: ${this.selectedDrug.maxDailyDoseMg} mg/día` : 'No definido';
+
+        // Actualizar Cuadro de Alertas
+        const alertBox = document.getElementById('calcAlertBox');
+        const alertIcon = document.getElementById('calcAlertIcon');
+        const alertMsg = document.getElementById('calcAlertMessage');
+
+        alertBox.className = `clinical-alert ${result.alertLevel}`;
+        if (result.alertLevel === 'safe') {
+          alertIcon.textContent = '✅';
+          alertMsg.innerHTML = `<strong>Dosis Segura:</strong> ${result.alertMessage}`;
+        } else if (result.alertLevel === 'warning') {
+          alertIcon.textContent = '⚠️';
+          alertMsg.innerHTML = `<strong>Precaución Posológica:</strong> ${result.alertMessage}`;
+        } else {
+          alertIcon.textContent = '🛑';
+          alertMsg.innerHTML = `<strong>Límite Excedido:</strong> ${result.alertMessage}`;
+        }
+
+        // Actualizar desglose de fórmula
+        if (doseType === 'per_dose') {
+          document.getElementById('formulaTextDose').textContent = 
+            `${UTILITIES.format(weight, 1)} kg × ${UTILITIES.format(doseVal, 1)} mg/kg = ${UTILITIES.format(result.mgPerDose, 1)} mg/toma`;
+        } else {
+          document.getElementById('formulaTextDose').textContent = 
+            `(${UTILITIES.format(weight, 1)} kg × ${UTILITIES.format(doseVal, 1)} mg/kg/día) ÷ ${result.dosesPerDay} tomas = ${UTILITIES.format(result.mgPerDose, 1)} mg/toma`;
+        }
+
+        document.getElementById('formulaTextVol').textContent = 
+          `${UTILITIES.format(result.mgPerDose, 1)} mg ÷ ${UTILITIES.format(result.concRatio, 2)} mg/mL = ${UTILITIES.format(result.mlPerDose, CONFIG.decimals)} mL`;
+
+        // Visibilidad según configuración
+        document.getElementById('calcFormulaBox').style.display = CONFIG.showFormulas ? 'block' : 'none';
+        alertBox.style.display = CONFIG.showAlerts ? 'flex' : 'none';
+      },
+
+      setupEventListeners() {
+        // Botón Restablecer
+        document.getElementById('btnResetCalc').addEventListener('click', () => {
+          if (this.selectedDrug) this.loadDrugIntoCalculator(this.selectedDrug);
+          this.executeMainCalculation();
+          this.showToast('Parámetros restablecidos');
+        });
+
+        // Botón Recalcular
+        document.getElementById('btnExecuteCalc').addEventListener('click', () => {
+          this.executeMainCalculation();
+          this.showToast('Cálculo recalculado');
+        });
+
+        // Botón Guardar en Historial
+        document.getElementById('btnSaveToHistory').addEventListener('click', () => {
+          if (!this.lastCalculationResult || !this.lastCalculationResult.isValid) return;
+          const r = this.lastCalculationResult;
+          const presIdx = parseInt(document.getElementById('calcPresentationSelect').value, 10) || 0;
+          const pres = this.selectedDrug.presentations[presIdx];
+
+          const entry = {
+            id: Date.now(),
+            date: UTILITIES.getDateString(),
+            time: UTILITIES.getTimeString(),
+            patientWeight: r.weight,
+            patientDesc: `${UTILITIES.format(r.weight, 1)} kg (${PATIENT.ageValue} ${PATIENT.ageUnit})`,
+            drugId: this.selectedDrug.id,
+            drugName: this.selectedDrug.name,
+            presentationName: pres.name,
+            doseVal: r.doseVal,
+            doseType: r.doseType,
+            doseUnit: r.doseType === 'per_dose' ? 'mg/kg/toma' : 'mg/kg/día',
+            frequencyHours: r.frequencyHours,
+            mgPerDose: r.mgPerDose,
+            mlPerDose: r.mlPerDose,
+            dailyMg: r.dailyMg,
+            alertLevel: r.alertLevel
+          };
+
+          HISTORY.add(entry);
+          this.showToast('Cálculo guardado en el historial');
+        });
+
+        // Botón Copiar Resultado
+        document.getElementById('btnCopyResult').addEventListener('click', () => {
+          if (!this.lastCalculationResult || !this.lastCalculationResult.isValid) return;
+          const r = this.lastCalculationResult;
+          const text = `Prescripción Pediátrica:
+Medicamento: ${this.selectedDrug.name}
+Paciente: ${UTILITIES.format(r.weight, 1)} kg
+Dosis calculada: ${UTILITIES.format(r.mgPerDose, 1)} mg cada ${r.frequencyHours} horas
+Volumen: ${UTILITIES.format(r.mlPerDose, CONFIG.decimals)} mL por toma
+Dosis diaria total: ${UTILITIES.format(r.dailyMg, 1)} mg/día
+Nota: Verificado con PediatriaDosis Pro.`;
+
+          this.copyToClipboard(text);
+          this.showToast('Resumen clínico copiado al portapapeles');
+        });
+
+        // Botón "¿Cómo se calculó?" (Modal explicativo)
+        document.getElementById('btnExplainCalc').addEventListener('click', () => {
+          this.showExplainModal();
+        });
+        document.getElementById('btnCloseExplainModal').addEventListener('click', () => {
+          document.getElementById('explainModal').classList.remove('show');
+        });
+        document.getElementById('btnCloseExplainBtn').addEventListener('click', () => {
+          document.getElementById('explainModal').classList.remove('show');
+        });
+
+        // Modal Paciente
+        document.getElementById('btnEditPatientQuick').addEventListener('click', () => {
+          document.getElementById('modalPatientWeight').value = PATIENT.weightKg;
+          document.getElementById('modalPatientAge').value = PATIENT.ageValue;
+          document.getElementById('modalPatientAgeUnit').value = PATIENT.ageUnit;
+          document.getElementById('modalPatientHeight').value = PATIENT.heightCm;
+          document.getElementById('modalPatientSex').value = PATIENT.sex;
+          document.getElementById('patientModal').classList.add('show');
+        });
+
+        document.getElementById('btnClosePatientModal').addEventListener('click', () => {
+          document.getElementById('patientModal').classList.remove('show');
+        });
+        document.getElementById('btnCancelPatientModal').addEventListener('click', () => {
+          document.getElementById('patientModal').classList.remove('show');
+        });
+
+        document.getElementById('btnSavePatientModal').addEventListener('click', () => {
+          const w = parseFloat(document.getElementById('modalPatientWeight').value);
+          const a = parseFloat(document.getElementById('modalPatientAge').value);
+          const u = document.getElementById('modalPatientAgeUnit').value;
+          const h = parseFloat(document.getElementById('modalPatientHeight').value);
+          const s = document.getElementById('modalPatientSex').value;
+
+          if (isNaN(w) || w <= 0) {
+            this.showToast('El peso debe ser mayor a 0 kg');
+            return;
+          }
+
+          PATIENT.update({
+            weightKg: w,
+            ageValue: a,
+            ageUnit: u,
+            heightCm: h,
+            sex: s
+          });
+
+          this.executeMainCalculation();
+          document.getElementById('patientModal').classList.remove('show');
+          this.showToast('Datos del paciente actualizados');
+        });
+
+        // Calculadora de Superficie Corporal (BSA)
+        document.getElementById('btnCalculateBsa').addEventListener('click', () => {
+          const w = parseFloat(document.getElementById('bsaInputWeight').value);
+          const h = parseFloat(document.getElementById('bsaInputHeight').value);
+          const formula = document.getElementById('bsaFormulaSelect').value;
+
+          if (isNaN(w) || w <= 0 || isNaN(h) || h <= 0) {
+            this.showToast('Ingrese peso y talla mayores a cero');
+            return;
+          }
+
+          const bsa = CALCULATOR.calculateBSA(w, h, formula);
+          document.getElementById('bsaResultValue').textContent = `${UTILITIES.format(bsa, 2)} m²`;
+
+          if (formula === 'mosteller') {
+            document.getElementById('bsaResultFormulaDesc').textContent = `Mosteller: √(( ${w} kg × ${h} cm ) ÷ 3600)`;
+          } else {
+            document.getElementById('bsaResultFormulaDesc').textContent = `Du Bois: 0.007184 × (${w})^0.425 × (${h})^0.725`;
+          }
+        });
+
+        document.getElementById('btnApplyBsaToPatient').addEventListener('click', () => {
+          const w = parseFloat(document.getElementById('bsaInputWeight').value);
+          const h = parseFloat(document.getElementById('bsaInputHeight').value);
+          if (w > 0 && h > 0) {
+            PATIENT.update({ weightKg: w, heightCm: h });
+            this.showToast('Superficie y peso actualizados en el paciente');
+          }
+        });
+
+        // Calculadora por Peso Manual
+        document.getElementById('btnComputeQuickWeight').addEventListener('click', () => {
+          const w = parseFloat(document.getElementById('quickWeight').value);
+          const mode = document.getElementById('quickDoseMode').value;
+          const dose = parseFloat(document.getElementById('quickDoseMgKg').value);
+          const dosesPerDay = parseInt(document.getElementById('quickDosesPerDay').value, 10);
+          const concMg = parseFloat(document.getElementById('quickConcMg').value);
+          const concMl = parseFloat(document.getElementById('quickConcMl').value);
+
+          if (isNaN(w) || w <= 0 || isNaN(dose) || dose <= 0 || isNaN(concMg) || concMg <= 0 || isNaN(concMl) || concMl <= 0) {
+            this.showToast('Complete todos los campos con valores positivos');
+            return;
+          }
+
+          const ratio = concMg / concMl;
+          let mgToma = 0;
+          let mgDia = 0;
+
+          if (mode === 'dose') {
+            mgToma = w * dose;
+            mgDia = mgToma * dosesPerDay;
+          } else {
+            mgDia = w * dose;
+            mgToma = mgDia / dosesPerDay;
+          }
+
+          const mlToma = mgToma / ratio;
+          document.getElementById('quickResultMg').textContent = `${UTILITIES.format(mgToma, 1)} mg`;
+          document.getElementById('quickResultMl').textContent = `${UTILITIES.format(mlToma, CONFIG.decimals)} mL`;
+          document.getElementById('quickFormulaDay').textContent = `${UTILITIES.format(mgDia, 1)} mg/día en ${dosesPerDay} tomas`;
+          document.getElementById('quickFormulaConc').textContent = `${UTILITIES.format(ratio, 2)} mg/mL (${concMg} mg en ${concMl} mL)`;
+        });
+
+        // Historial
+        document.getElementById('btnClearHistory').addEventListener('click', () => {
+          HISTORY.clear();
+          this.showToast('Historial vaciado');
+        });
+
+        document.getElementById('btnPrintHistory').addEventListener('click', () => {
+          window.print();
+        });
+
+        // Configuración
+        document.getElementById('btnSaveSettings').addEventListener('click', () => {
+          CONFIG.decimals = parseInt(document.getElementById('settingDecimals').value, 10);
+          CONFIG.theme = document.getElementById('settingTheme').value;
+          CONFIG.showFormulas = document.getElementById('settingShowFormulas').checked;
+          CONFIG.showAlerts = document.getElementById('settingShowAlerts').checked;
+
+          CONFIG.applyTheme(CONFIG.theme);
+          CONFIG.save();
+          this.executeMainCalculation();
+          this.showToast('Preferencias guardadas');
+        });
+      },
+
+      initConverterListeners() {
+        const updateMgToMl = () => {
+          const mg = parseFloat(document.getElementById('convMgIn').value);
+          const rMg = parseFloat(document.getElementById('convRefMg1').value);
+          const rMl = parseFloat(document.getElementById('convRefMl1').value);
+          const ratio = rMg / rMl;
+          document.getElementById('convRatio1').textContent = `${UTILITIES.format(ratio, 2)} mg/mL`;
+          const ml = CONVERTER.mgToMl(mg, rMg, rMl);
+          document.getElementById('convMlOut').textContent = `${UTILITIES.format(ml, CONFIG.decimals)} mL`;
+        };
+
+        const updateMlToMg = () => {
+          const ml = parseFloat(document.getElementById('convMlIn').value);
+          const rMg = parseFloat(document.getElementById('convRefMg2').value);
+          const rMl = parseFloat(document.getElementById('convRefMl2').value);
+          const ratio = rMg / rMl;
+          document.getElementById('convRatio2').textContent = `${UTILITIES.format(ratio, 2)} mg/mL`;
+          const mg = CONVERTER.mlToMg(ml, rMg, rMl);
+          document.getElementById('convMgOut').textContent = `${UTILITIES.format(mg, 1)} mg`;
+        };
+
+        ['convMgIn', 'convRefMg1', 'convRefMl1'].forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.addEventListener('input', updateMgToMl);
+        });
+
+        ['convMlIn', 'convRefMg2', 'convRefMl2'].forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.addEventListener('input', updateMlToMg);
+        });
+      },
+
+      showExplainModal() {
+        if (!this.lastCalculationResult || !this.lastCalculationResult.isValid) return;
+        const r = this.lastCalculationResult;
+        const drug = this.selectedDrug;
+        const presIdx = parseInt(document.getElementById('calcPresentationSelect').value, 10) || 0;
+        const pres = drug.presentations[presIdx];
+
+        const html = `
+          <div style="display:flex; flex-direction:column; gap: 1rem;">
+            <div style="background: var(--primary-light); padding: 0.85rem; border-radius: var(--radius-md);">
+              <h4 style="color: var(--primary); font-size: 1rem; margin-bottom: 0.2rem;">${drug.name} (${drug.generic})</h4>
+              <p style="font-size: 0.85rem; color: var(--text-muted);">Presentación: ${pres.name}</p>
+            </div>
+
+            <div class="step-item">
+              <div class="step-number">1</div>
+              <div>
+                <div class="step-title">Identificación del Peso del Paciente</div>
+                <div class="step-desc">Peso registrado: <strong>${UTILITIES.format(r.weight, 1)} kg</strong>.</div>
+              </div>
+            </div>
+
+            <div class="step-item">
+              <div class="step-number">2</div>
+              <div>
+                <div class="step-title">Posología Indicada</div>
+                <div class="step-desc">
+                  Régimen seleccionado: <strong>${UTILITIES.format(r.doseVal, 1)} ${r.doseType === 'per_dose' ? 'mg/kg/toma' : 'mg/kg/día'}</strong>.<br>
+                  Frecuencia de administración: <strong>Cada ${r.frequencyHours} horas</strong> (${r.dosesPerDay} tomas en 24 horas).
+                </div>
+              </div>
+            </div>
+
+            <div class="step-item">
+              <div class="step-number">3</div>
+              <div>
+                <div class="step-title">Cálculo de la Dosis en Miligramos (mg)</div>
+                <div class="step-desc">
+                  ${r.doseType === 'per_dose' ? `
+                    Operación: ${UTILITIES.format(r.weight, 1)} kg × ${UTILITIES.format(r.doseVal, 1)} mg/kg = <strong>${UTILITIES.format(r.mgPerDose, 1)} mg por toma</strong>.<br>
+                    Dosis diaria total: ${UTILITIES.format(r.mgPerDose, 1)} mg × ${r.dosesPerDay} tomas = <strong>${UTILITIES.format(r.dailyMg, 1)} mg/día</strong>.
+                  ` : `
+                    Operación diaria: ${UTILITIES.format(r.weight, 1)} kg × ${UTILITIES.format(r.doseVal, 1)} mg/kg/día = <strong>${UTILITIES.format(r.dailyMg, 1)} mg/día</strong>.<br>
+                    Reparto en tomas: ${UTILITIES.format(r.dailyMg, 1)} mg ÷ ${r.dosesPerDay} tomas = <strong>${UTILITIES.format(r.mgPerDose, 1)} mg por toma</strong>.
+                  `}
+                </div>
+              </div>
+            </div>
+
+            <div class="step-item">
+              <div class="step-number">4</div>
+              <div>
+                <div class="step-title">Concentración Comercial del Medicamento</div>
+                <div class="step-desc">
+                  Fórmula: ${pres.mg} mg ÷ ${pres.ml} mL = <strong>${UTILITIES.format(r.concRatio, 2)} mg/mL</strong>.
+                </div>
+              </div>
+            </div>
+
+            <div class="step-item">
+              <div class="step-number">5</div>
+              <div>
+                <div class="step-title">Conversión al Volumen Líquido a Administrar (mL)</div>
+                <div class="step-desc">
+                  Operación: ${UTILITIES.format(r.mgPerDose, 1)} mg ÷ ${UTILITIES.format(r.concRatio, 2)} mg/mL = 
+                  <strong style="color: var(--primary); font-size: 1.1rem;">${UTILITIES.format(r.mlPerDose, CONFIG.decimals)} mL por toma</strong>.
+                </div>
+              </div>
+            </div>
+
+            <div class="step-item">
+              <div class="step-number">6</div>
+              <div>
+                <div class="step-title">Verificación de Límites Máximos de Seguridad</div>
+                <div class="step-desc">
+                  Límite máximo diario fijado: <strong>${drug.maxDailyDoseMg ? drug.maxDailyDoseMg + ' mg/día' : 'No reportado'}</strong>.<br>
+                  Dosis calculada del paciente: <strong>${UTILITIES.format(r.dailyMg, 1)} mg/día</strong>.<br>
+                  Estado de seguridad: <span class="badge" style="font-weight:700; color: ${r.alertLevel === 'safe' ? 'var(--safe)' : r.alertLevel === 'warning' ? 'var(--warning)' : 'var(--danger)'};">${r.alertMessage}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+
+        document.getElementById('explainModalBody').innerHTML = html;
+        document.getElementById('explainModal').classList.add('show');
+      },
+
+      populateDrugCatalog() {
+        const tbody = document.getElementById('drugsTableBody');
+        const filterInput = document.getElementById('drugCatalogFilter');
+
+        const renderTable = (list) => {
+          tbody.innerHTML = list.map(drug => `
+            <tr>
+              <td>
+                <div style="font-weight: 700; color: var(--text-main);">${drug.name}</div>
+                <div style="font-size: 0.78rem; color: var(--text-muted);">${drug.generic} • <span style="color: var(--primary);">${drug.category}</span></div>
+              </td>
+              <td>
+                <div style="font-weight: 600; font-size: 0.82rem;">${drug.route}</div>
+                <div style="font-size: 0.75rem; color: var(--text-muted);">
+                  ${drug.presentations.map(p => p.name).join('<br>')}
+                </div>
+              </td>
+              <td>
+                <strong>${drug.standardDose} ${drug.doseUnit}</strong>
+                <div style="font-size: 0.75rem; color: var(--text-muted);">Rango: ${drug.minDose} - ${drug.maxDose} ${drug.doseUnit}</div>
+              </td>
+              <td>
+                <div>Diaria: <strong>${drug.maxDailyDoseMg ? drug.maxDailyDoseMg + ' mg' : 'N/A'}</strong></div>
+                <div style="font-size: 0.75rem; color: var(--text-muted);">Por toma: ${drug.maxSingleDoseMg ? drug.maxSingleDoseMg + ' mg' : 'N/A'}</div>
+              </td>
+              <td>
+                <div style="font-size: 0.8rem; color: var(--text-main);">${drug.observations}</div>
+                <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 0.2rem;">Fuente: ${drug.source}</div>
+              </td>
+              <td>
+                <button class="btn btn-secondary btn-sm" onclick="APP.selectDrugFromCatalog('${drug.id}')">
+                  Calcular
+                </button>
+              </td>
+            </tr>
+          `).join('');
+        };
+
+        renderTable(DATABASE.drugs);
+
+        filterInput.addEventListener('input', (e) => {
+          const filtered = DATABASE.search(e.target.value);
+          renderTable(filtered);
+        });
+      },
+
+      populateDashboardTags() {
+        const container = document.getElementById('dashboardDrugTags');
+        if (!container) return;
+        container.innerHTML = DATABASE.drugs.map(drug => `
+          <button class="btn btn-secondary btn-sm" style="font-size: 0.8rem;" onclick="APP.selectDrugFromCatalog('${drug.id}')">
+            💊 ${drug.name}
+          </button>
+        `).join('');
+      },
+
+      renderHistoryTable() {
+        const tbody = document.getElementById('historyTableBody');
+        if (!tbody) return;
+
+        if (HISTORY.items.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="9" style="text-align: center; color: var(--text-muted); padding: 2rem;">No hay cálculos guardados en la sesión actual</td></tr>`;
+          return;
+        }
+
+        tbody.innerHTML = HISTORY.items.map(item => `
+          <tr>
+            <td style="font-size: 0.8rem;">
+              <strong>${item.time}</strong><br>
+              <span style="color: var(--text-muted);">${item.date}</span>
+            </td>
+            <td><strong>${item.patientDesc}</strong></td>
+            <td>
+              <div style="font-weight: 700;">${item.drugName}</div>
+              <div style="font-size: 0.75rem; color: var(--text-muted);">${item.presentationName}</div>
+            </td>
+            <td>${UTILITIES.format(item.doseVal, 1)} ${item.doseUnit}</td>
+            <td><strong style="color: var(--text-main);">${UTILITIES.format(item.mgPerDose, 1)} mg</strong></td>
+            <td><strong style="color: var(--primary);">${UTILITIES.format(item.mlPerDose, CONFIG.decimals)} mL</strong></td>
+            <td>Cada ${item.frequencyHours} h</td>
+            <td>
+              <span style="display: inline-block; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: 700; background: ${item.alertLevel === 'safe' ? 'var(--safe-bg)' : item.alertLevel === 'warning' ? 'var(--warning-bg)' : 'var(--danger-bg)'}; color: ${item.alertLevel === 'safe' ? 'var(--safe-text)' : item.alertLevel === 'warning' ? 'var(--warning-text)' : 'var(--danger-text)'};">
+                ${item.alertLevel.toUpperCase()}
+              </span>
+            </td>
+            <td>
+              <div style="display: flex; gap: 0.35rem;">
+                <button class="btn btn-secondary btn-sm" onclick="APP.reloadHistoryItem(${item.id})" title="Cargar este cálculo">
+                  <svg class="icon" viewBox="0 0 24 24"><path d="M1 4v6h6"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+                </button>
+                <button class="btn btn-outline-danger btn-sm" onclick="APP.deleteHistoryItem(${item.id})" title="Eliminar registro">
+                  <svg class="icon" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>
+                </button>
+              </div>
+            </td>
+          </tr>
+        `).join('');
+      },
+
+      updateDashboardKPIs() {
+        const count = HISTORY.items.length;
+        document.getElementById('kpiHistoryCount').textContent = `${count} ${count === 1 ? 'cálculo' : 'cálculos'}`;
+        if (count > 0) {
+          const last = HISTORY.items[0];
+          document.getElementById('kpiLastDrug').textContent = last.drugName;
+          document.getElementById('kpiLastDose').textContent = `${UTILITIES.format(last.mgPerDose, 1)} mg (${UTILITIES.format(last.mlPerDose, CONFIG.decimals)} mL)`;
+          document.getElementById('kpiLastTime').textContent = `Hora: ${last.time}`;
+        }
+      },
+
+      showToast(message) {
+        const container = document.getElementById('toastContainer');
+        const toast = document.createElement('div');
+        toast.className = 'toast';
+        toast.innerHTML = `
+          <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 14 14"/></svg>
+          <span>${message}</span>
+        `;
+        container.appendChild(toast);
+        requestAnimationFrame(() => toast.classList.add('show'));
+        setTimeout(() => {
+          toast.classList.remove('show');
+          setTimeout(() => toast.remove(), 250);
+        }, 3000);
+      },
+
+      copyToClipboard(text) {
+        if (navigator.clipboard && window.isSecureContext) {
+          navigator.clipboard.writeText(text).catch(() => {
+            this.fallbackCopyText(text);
+          });
+        } else {
+          this.fallbackCopyText(text);
+        }
+      },
+
+      fallbackCopyText(text) {
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-999999px';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        try {
+          document.execCommand('copy');
+        } catch (err) {}
+        document.body.removeChild(textArea);
+      }
+    };
+
+    /**
+     * MÓDULO CONTROLADOR GLOBAL (APP)
+     * Fachada para llamadas desde HTML
+     */
+    const APP = {
+      init() {
+        CONFIG.init();
+        PATIENT.load();
+        HISTORY.init();
+        UI.init();
+      },
+
+      navigateTo(view) {
+        UI.navigateTo(view);
+      },
+
+      selectDrugFromCatalog(drugId) {
+        const drug = DATABASE.getDrugById(drugId);
+        if (drug) {
+          UI.loadDrugIntoCalculator(drug);
+          UI.executeMainCalculation();
+          UI.navigateTo('calculator');
+          UI.showToast(`Cargado ${drug.name} en calculadora`);
+        }
+      },
+
+      reloadHistoryItem(id) {
+        const item = HISTORY.items.find(i => i.id === id);
+        if (item) {
+          PATIENT.update({ weightKg: item.patientWeight });
+          const drug = DATABASE.getDrugById(item.drugId);
+          if (drug) {
+            UI.loadDrugIntoCalculator(drug);
+            document.getElementById('calcDoseVal').value = item.doseVal;
+            document.getElementById('calcDoseType').value = item.doseType;
+            document.getElementById('calcFrequencySelect').value = item.frequencyHours;
+            UI.executeMainCalculation();
+            UI.navigateTo('calculator');
+            UI.showToast(`Cálculo de ${drug.name} recargado`);
+          }
+        }
+      },
+
+      deleteHistoryItem(id) {
+        HISTORY.remove(id);
+        UI.showToast('Registro eliminado');
+      }
+    };
+
+    // Inicialización al cargar la ventana
+    window.addEventListener('DOMContentLoaded', () => {
+      APP.init();
+    });
+  </script>
+</body>
+</html>
